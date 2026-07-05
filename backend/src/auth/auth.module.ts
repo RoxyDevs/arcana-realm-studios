@@ -1,3 +1,5 @@
+// src/auth/auth.module.ts
+
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { PassportModule } from '@nestjs/passport';
@@ -18,8 +20,10 @@ import { RolesGuard } from './roles.guard';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET', 'dev_jwt_secret'),
-        signOptions: { expiresIn: configService.get<string>('JWT_EXPIRES_IN', '1d') },
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '7d'),
+        },
       }),
     }),
     UsersModule,
@@ -31,6 +35,6 @@ import { RolesGuard } from './roles.guard';
     JwtStrategy,
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
-  exports: [AuthService],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 
-export class InstallBotDto {
+export class PurchaseTokenDto {
   @IsString()
   @IsNotEmpty()
-  roomId!: string;
+  packageId!: string;
 }

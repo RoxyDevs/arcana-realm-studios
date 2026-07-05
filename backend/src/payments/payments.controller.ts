@@ -1,20 +1,46 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { CreatePaymentDto } from './dto/create-payment.dto';
+// src/payments/payments.controller.ts
+
+import {
+  Body,
+  Controller,
+  Post,
+  UseGuards,
+  Req,
+  HttpCode,
+} from '@nestjs/common';
+import { Request } from 'express';
 import { PaymentsService } from './payments.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CreatePaymentDto } from './dto/create-payment.dto';
+
+interface AuthenticatedUser {
+  id: string;
+}
+
+interface AuthenticatedRequest extends Request {
+  user: AuthenticatedUser;
+}
 
 @Controller('payments')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtAuthGuard)
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  @Post('paypal/create')
-  createPaypalOrder(@Body() body: CreatePaymentDto) {
-    return this.paymentsService.createOrder(body.amount, body.currency);
+  @Post('create-order')
+  @HttpCode(201)
+  async createOrder(
+    @Body() body: CreatePaymentDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.paymentsService.createPayPalOrder(
+      request.user.id,
+      body.amount,
+      body.currency,
+    );
   }
 
-  @Post('paypal/capture')
-  capturePaypalOrder(@Body('orderId') orderId: string) {
-    return this.paymentsService.captureOrder(orderId);
+  @Post('capture')
+  async captureOrder(@Body('orderId') orderId: string) {
+    return this.paymentsService.capturePayPalOrder(orderId);
   }
 }

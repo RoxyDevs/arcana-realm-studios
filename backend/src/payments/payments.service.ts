@@ -1,4 +1,40 @@
+// src/payments/payments.service.ts
+
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class PaymentsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  async createPayPalOrder(userId: string, amount: number, currency: string = 'USD') {
+    // Aquí iría la lógica real con @paypal/checkout-server-sdk
+    // Por ahora devolvemos una estructura simulada lista para implementar
+
+    return {
+      success: true,
+      message: 'Orden de PayPal creada (simulada)',
+      orderId: `PAY-${Date.now()}`,
+      amount,
+      currency,
+      userId,
+      approveUrl: `https://www.sandbox.paypal.com/checkoutnow?token=SIMULATED`,
+    };
+  }
+
+  async capturePayPalOrder(orderId: string) {
+    // Lógica real de captura de PayPal
+    return {
+      success: true,
+      message: 'Pago capturado exitosamente (simulado)',
+      orderId,
+    };
+  }
+}import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as paypal from '@paypal/checkout-server-sdk';
 

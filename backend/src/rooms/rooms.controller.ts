@@ -13,13 +13,16 @@ export class RoomsController {
     return this.roomsService.getRoomsByUser(request.user.id);
   }
 
-  @Post()
-  create(@Body() body: CreateRoomDto, @Req() request: any) {
-    return this.roomsService.createRoom({
-      userId: request.user.id,
-      name: body.name,
-      imvuRoomId: body.imvuRoomId,
-      url: body.url,
-    });
-  }
+// src/rooms/rooms.controller.ts (fragmento actualizado)
+
+@Post()
+create(@Body() body: CreateRoomDto, @Req() request: any) {
+  return this.roomsService.createRoom({
+    userId: request.user.id,
+    name: body.name,
+    imvuRoomId: body.imvuRoomId,
+    url: body.url,
+    roomType: body.roomType,
+  });
+}
 }

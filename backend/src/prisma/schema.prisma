@@ -1,0 +1,20 @@
+//model Playlist {
+  id          String   @id @default(cuid())
+  roomId      String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  room   Room            @relation(fields: [roomId], references: [id])
+  tracks PlaylistTrack[]
+}
+
+model PlaylistTrack {
+  id          String   @id @default(cuid())
+  playlistId  String
+  title       String
+  url         String?
+  createdAt   DateTime @default(now())
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+}

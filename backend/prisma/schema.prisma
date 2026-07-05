@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,160 +9,173 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// =====================================================
+// ====================== ENUMS ========================
+// =====================================================
+
 enum Role {
-  FOUNDER
-  ADMIN
-  PARTNER
-  PREMIUM
-  TRIAL
   USER
+  ADMIN
+  FOUNDER
 }
 
 enum LicenseType {
-  FOUNDER
   TRIAL
   THREE_DAYS
   SEVEN_DAYS
   FIFTEEN_DAYS
   THIRTY_DAYS
+  FOUNDER
 }
 
 enum LicenseStatus {
   ACTIVE
   EXPIRED
-  SUSPENDED
-  PENDING
+  CANCELLED
 }
 
+enum RoomType {
+  GA          // General Access (gratuita)
+  AP          // Access Pass (pago)
+}
+
+enum BotStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// =====================================================
+// ====================== MODELS =======================
+// =====================================================
+
 model User {
-  id             String    @id @default(cuid())
-  discordId      String    @unique
-  username       String
-  avatar         String?
-  email          String?   @unique
-  roles          Role[]    @default([USER])
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  licenses       License[]
-  imvuAccount    IMVUAccount?
-  rooms          Room[]
-  payments       Payment[]
-  referrals      Referral[]
-  auditEvents    AuditEvent[]
+  id          String   @id @default(cuid())
+  discordId   String   @unique
+  username    String
+  avatar      String?
+  email       String?
+  roles       Role[]   @default([USER])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  licenses          License[]
+  rooms             Room[]
+  imvuAccount       IMVUAccount?
+  botInstallations  BotInstallation[]
+  bans              Ban[]
 }
 
 model License {
-  id          String        @id @default(cuid())
-  type        LicenseType
-  status      LicenseStatus @default(PENDING)
-  createdAt   DateTime      @default(now())
-  expiresAt   DateTime
-  code        String        @unique
-  user        User          @relation(fields: [userId], references: [id])
-  userId      String
-  maxRooms    Int           @default(1)
-  maxPlaylists Int          @default(10)
-}
+  id        String         @id @default(cuid())
+  userId    String
+  type      LicenseType
+  status    LicenseStatus  @default(ACTIVE)
+  code      String         @unique
+  maxRooms  Int            @default(3)
+  expiresAt DateTime
+  createdAt DateTime       @default(now())
 
-model IMVUAccount {
-  id          String   @id @default(cuid())
-  username    String
-  roomId      String
-  roomUrl     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String   @unique
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Room {
-  id                 String             @id @default(cuid())
-  name               String
-  imvuRoomId         String
-  url                String
-  active             Boolean            @default(true)
-  autoDjEnabled      Boolean            @default(false)
-  owner              User               @relation(fields: [userId], references: [id])
-  userId             String
-  playlists          Playlist[]
-  musicProfile       RoomMusicProfile?
-  botInstallations   BotInstallation[]
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-}
-
-model Playlist {
-  id          String         @id @default(cuid())
+  id          String    @id @default(cuid())
+  userId      String
   name        String
-  description String?
-  room        Room           @relation(fields: [roomId], references: [id])
-  roomId      String
-  items       PlaylistItem[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  imvuRoomId  String    @unique
+  url         String
+  roomType    RoomType  @default(GA)      // GA o AP
+  createdAt   DateTime  @default(now())
+
+  user              User               @relation(fields: [userId], references: [id])
+  botInstallation   BotInstallation?
+  musicProfile      RoomMusicProfile?
+  playlists         Playlist[]
+  queueTracks       QueueTrack[]
+  playHistory       PlayHistory[]
 }
 
-model PlaylistItem {
-  id         String   @id @default(cuid())
-  playlist   Playlist @relation(fields: [playlistId], references: [id])
-  playlistId String
-  title      String
-  artist     String?
-  genre      String?
-  bpm        Int?
-  metadata   Json?
-  order      Int      @default(0)
+model BotInstallation {
+  id        String     @id @default(cuid())
+  roomId    String     @unique
+  code      String     @unique
+  status    BotStatus  @default(ACTIVE)
+  createdAt DateTime   @default(now())
+
+  room Room @relation(fields: [roomId], references: [id])
+}
+
+model IMVUAccount {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  username  String
+  roomId    String
+  roomUrl   String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model RoomMusicProfile {
   id             String   @id @default(cuid())
-  room           Room     @relation(fields: [roomId], references: [id])
   roomId         String   @unique
-  favoriteGenres String[] @default([])
-  skippedTracks  String[] @default([])
-  playedTracks   String[] @default([])
-  moodHistory    Json?    
-  lastActiveAt   DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  favoriteGenres String[]
+  skippedTracks  String[]
+  playedTracks   String[]
+  lastActiveAt   DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id])
 }
 
-model BotInstallation {
+model Playlist {
   id          String   @id @default(cuid())
-  code        String   @unique
-  room        Room     @relation(fields: [roomId], references: [id])
   roomId      String
-  installedAt DateTime @default(now())
-  status      String   @default("ACTIVE")
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id])
 }
 
-model Referral {
-  id         String   @id @default(cuid())
-  code       String   @unique
-  user       User     @relation(fields: [userId], references: [id])
-  userId     String
-  sales      Int      @default(0)
-  commission Float    @default(0.0)
-  createdAt  DateTime @default(now())
-}
+// =====================================================
+// ============== COLA Y REPRODUCCIÓN ==================
+// =====================================================
 
-model Payment {
-  id           String    @id @default(cuid())
-  provider     String
-  providerId   String    @unique
-  status       String
-  amount       Float
-  currency     String
-  user         User      @relation(fields: [userId], references: [id])
-  userId       String
-  createdAt    DateTime  @default(now())
-}
-
-model AuditEvent {
+model QueueTrack {
   id        String   @id @default(cuid())
-  type      String
-  payload   Json?
-  user      User?    @relation(fields: [userId], references: [id])
-  userId    String?
+  roomId    String
+  title     String
+  url       String?
+  addedBy   String?
+  position  Int      @default(0)
   createdAt DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id])
+}
+
+model PlayHistory {
+  id        String   @id @default(cuid())
+  roomId    String
+  title     String
+  url       String?
+  playedAt  DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id])
+}
+
+// =====================================================
+// ==================== MODERACIÓN =====================
+// =====================================================
+
+model Ban {
+  id        String   @id @default(cuid())
+  roomId    String
+  userId    String
+  username  String
+  reason    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }

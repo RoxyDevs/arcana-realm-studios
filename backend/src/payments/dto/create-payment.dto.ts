@@ -1,8 +1,10 @@
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
+// src/payments/dto/create-payment.dto.ts
+
+import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreatePaymentDto {
   @IsNumber()
-  @Min(0.01)
+  @Min(1)
   amount!: number;
 
   @IsString()
