@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import type { QueueItemDto } from "@arcana/types";
 import { TRACK_REPOSITORY, type ITrackRepository } from "../domain/track-repository.interface";
 import { QUEUE_REPOSITORY, type IQueueRepository, type QueueItemWithTrack } from "../domain/queue-repository.interface";
-import { ROOM_ACCESS_CHECKER, type IRoomAccessChecker } from "../domain/room-access.interface";
+import { ROOM_ACCESS_CHECKER, type IRoomAccessChecker } from "../../../common/domain/room-access.interface";
 import type { EnqueueTrackDto } from "@arcana/types";
 import { TrackProviderRegistry } from "./track-provider.registry";
 

@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import type { PrismaClient } from "@arcana/database";
-import { PRISMA_CLIENT } from "../../../common/infrastructure/prisma.module";
+import { PRISMA_CLIENT } from "./prisma.module";
 import type { IRoomAccessChecker } from "../domain/room-access.interface";
 
 @Injectable()

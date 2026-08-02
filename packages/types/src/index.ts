@@ -59,6 +59,47 @@ export const CreateCheckoutSessionSchema = z.object({
 });
 export type CreateCheckoutSessionDto = z.infer<typeof CreateCheckoutSessionSchema>;
 
+export const AdjustWalletSchema = z.object({
+  targetUserId: z.string().min(1),
+  amount: z.number().int().refine((v) => v !== 0, "amount must not be zero"),
+  reason: z.string().min(3).max(500),
+});
+export type AdjustWalletDto = z.infer<typeof AdjustWalletSchema>;
+
+// ---------------------------------------------------------------------------
+// Bot Licenses — time-boxed bot access per room ("1 day" ... "1 year" plans).
+// Prices are credits, defined once here so the pricing table on the web app
+// and the API's purchase logic never drift apart.
+// ---------------------------------------------------------------------------
+
+export const BotLicensePlanSchema = z.enum(["DAY_1", "WEEK_1", "MONTH_1", "MONTH_3", "YEAR_1"]);
+export type BotLicensePlan = z.infer<typeof BotLicensePlanSchema>;
+
+export interface BotLicensePlanDefinition {
+  days: number;
+  credits: number;
+  label: string;
+}
+
+export const BOT_LICENSE_PLANS: Record<BotLicensePlan, BotLicensePlanDefinition> = {
+  DAY_1: { days: 1, credits: 50, label: "1 día" },
+  WEEK_1: { days: 7, credits: 250, label: "1 semana" },
+  MONTH_1: { days: 30, credits: 800, label: "1 mes" },
+  MONTH_3: { days: 90, credits: 2000, label: "3 meses" },
+  YEAR_1: { days: 365, credits: 6000, label: "1 año" },
+};
+
+export const PurchaseLicenseSchema = z.object({
+  plan: BotLicensePlanSchema,
+});
+export type PurchaseLicenseDto = z.infer<typeof PurchaseLicenseSchema>;
+
+export interface BotLicenseStatusDto {
+  active: boolean;
+  plan: BotLicensePlan | null;
+  expiresAt: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Arcana Music
 // ---------------------------------------------------------------------------

@@ -37,7 +37,7 @@ Modules implemented so far:
 | Module | Status | Notes |
 |---|---|---|
 | **Auth** | ✅ | Discord OAuth, JWT access + rotating opaque refresh tokens, RBAC (`@Roles`) |
-| **Billing** | ✅ | Credit wallet, Stripe Checkout (one-time credits + Plus/Premium subscriptions), webhook handling |
+| **Billing** | ✅ | Credit wallet, Stripe Checkout (one-time credits + Plus/Premium subscriptions), webhook handling, time-boxed bot licenses (1 day/week/month/3 months/year), audited manual wallet adjustments |
 | **Music** | ✅ | Per-room queue, Spotify/YouTube track resolution, AutoDJ `playNext` hook |
 | Guardian | 🔜 | Schema in place (`GuardianReport`, `ReputationScore`, `GuardianSettings`) — service layer not yet built |
 | Intelligence | 🔜 | `Room` model in place — analytics/heatmaps not yet built |
@@ -54,6 +54,12 @@ PostgreSQL via Prisma (`packages/database/prisma/schema.prisma`). Key models:
 - **Music**: `Track`, `Playlist`, `PlaylistTrack`, `MusicQueueItem`
 - **Guardian**: `GuardianSettings`, `GuardianReport`, `ReputationScore` — scoped to
   incidents inside a room the reporter hosts/moderates, never third-party tracking
+- **Bot Licenses**: `BotLicense` — time-boxed bot access per `Room` (`DAY_1`, `WEEK_1`,
+  `MONTH_1`, `MONTH_3`, `YEAR_1`; prices in `@arcana/types`' `BOT_LICENSE_PLANS`). Two
+  sources: `CREDIT_PURCHASE` (self-service, spends the room owner's wallet) and
+  `MANUAL_GRANT` (an `OWNER`/`ADMIN` grants time directly after confirming a payment
+  Arcana can't verify automatically — PayPal.me, an in-game VCoin gift — always tied to
+  the granting admin's `User.id` and logged in `AuditLog`)
 
 ### Migration strategy
 
@@ -75,7 +81,14 @@ create a Stripe Checkout session; `POST /billing/webhook` verifies the Stripe si
 using `req.rawBody` (see `main.ts`, `NestFactory.create(AppModule, { rawBody: true })`).
 
 Music: all endpoints are scoped under `/rooms/:roomId/queue` and require the caller to
-own the room (`IRoomAccessChecker`).
+own the room (`IRoomAccessChecker`, now shared under `common/domain` since Bot Licenses
+uses it too).
+
+Bot Licenses: `GET /rooms/:roomId/license` (status), `POST /rooms/:roomId/license/purchase`
+(room owner spends wallet credits), `POST /rooms/:roomId/license/grant` (`OWNER`/`ADMIN`
+only — manual grant for a PayPal.me/VCoin payment). `POST /billing/wallet/adjust`
+(`OWNER`/`ADMIN` only) credits/debits any user's wallet directly for the same
+out-of-band-payment reason, and always writes an `AuditLog` row.
 
 ## 4. Frontend
 

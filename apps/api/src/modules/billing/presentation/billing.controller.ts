@@ -13,10 +13,13 @@ import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import type { AuthenticatedUserDto, WalletBalanceDto } from "@arcana/types";
 import { JwtAuthGuard } from "../../auth/infrastructure/jwt-auth.guard";
+import { RolesGuard } from "../../../common/guards/roles.guard";
+import { Roles } from "../../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { BillingService } from "../application/billing.service";
 import { CreateCreditCheckoutDto } from "./create-credit-checkout.dto";
 import { CreateSubscriptionCheckoutDto } from "./create-subscription-checkout.dto";
+import { AdjustWalletRequestDto } from "./adjust-wallet.dto";
 import type { CheckoutSessionResult } from "../domain/payment-provider.interface";
 
 @ApiTags("billing")
@@ -67,6 +70,25 @@ export class BillingController {
       tier: dto.tier,
       successUrl: dto.successUrl,
       cancelUrl: dto.cancelUrl,
+    });
+  }
+
+  @Post("wallet/adjust")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("OWNER", "ADMIN")
+  @ApiOperation({
+    summary:
+      "Admin-only: manually credits/debits a user's wallet for a payment confirmed out-of-band (PayPal.me, in-game VCoins) — always audit-logged",
+  })
+  adjustWallet(
+    @CurrentUser() admin: AuthenticatedUserDto,
+    @Body() dto: AdjustWalletRequestDto,
+  ): Promise<WalletBalanceDto> {
+    return this.billingService.adjustWalletManually({
+      adminUserId: admin.id,
+      targetUserId: dto.targetUserId,
+      amount: dto.amount,
+      reason: dto.reason,
     });
   }
 

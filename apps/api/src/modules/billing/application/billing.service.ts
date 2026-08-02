@@ -1,5 +1,6 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import type { WalletBalanceDto } from "@arcana/types";
+import { AUDIT_LOGGER, type IAuditLogger } from "../../../common/domain/audit-logger.interface";
 import { PAYMENT_PROVIDER, type IPaymentProvider } from "../domain/payment-provider.interface";
 import { WALLET_REPOSITORY, type IWalletRepository } from "../domain/wallet-repository.interface";
 import {
@@ -20,6 +21,7 @@ export class BillingService {
     @Inject(PAYMENT_PROVIDER) private readonly paymentProvider: IPaymentProvider,
     @Inject(WALLET_REPOSITORY) private readonly wallets: IWalletRepository,
     @Inject(SUBSCRIPTION_REPOSITORY) private readonly subscriptions: ISubscriptionRepository,
+    @Inject(AUDIT_LOGGER) private readonly auditLogger: IAuditLogger,
   ) {}
 
   async getWalletBalance(userId: string): Promise<WalletBalanceDto> {
@@ -27,6 +29,36 @@ export class BillingService {
     if (!wallet) {
       throw new NotFoundException("Wallet not found");
     }
+    return { creditBalance: wallet.creditBalance, updatedAt: wallet.updatedAt.toISOString() };
+  }
+
+  /**
+   * Credits (or debits) a user's wallet for a payment Arcana couldn't verify
+   * automatically — PayPal.me, an in-game VCoin gift, etc. Every call is
+   * audit-logged with who did it and why; this is the only legitimate way
+   * those out-of-band payment channels connect to the credit ledger.
+   */
+  async adjustWalletManually(params: {
+    adminUserId: string;
+    targetUserId: string;
+    amount: number;
+    reason: string;
+  }): Promise<WalletBalanceDto> {
+    const { wallet } = await this.wallets.applyTransaction({
+      userId: params.targetUserId,
+      amount: params.amount,
+      type: "MANUAL_ADJUSTMENT",
+      metadata: { reason: params.reason, adjustedBy: params.adminUserId },
+    });
+
+    await this.auditLogger.log({
+      actorId: params.adminUserId,
+      action: "wallet.manual_adjustment",
+      targetType: "User",
+      targetId: params.targetUserId,
+      metadata: { amount: params.amount, reason: params.reason },
+    });
+
     return { creditBalance: wallet.creditBalance, updatedAt: wallet.updatedAt.toISOString() };
   }
 

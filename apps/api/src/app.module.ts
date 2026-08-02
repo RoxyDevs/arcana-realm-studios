@@ -4,6 +4,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import configuration from "./config/configuration";
 import { PrismaModule } from "./common/infrastructure/prisma.module";
+import { SharedProvidersModule } from "./common/shared-providers.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { BillingModule } from "./modules/billing/billing.module";
 import { MusicModule } from "./modules/music/music.module";
@@ -13,6 +14,7 @@ import { MusicModule } from "./modules/music/music.module";
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     PrismaModule,
+    SharedProvidersModule,
     AuthModule,
     BillingModule,
     MusicModule,
