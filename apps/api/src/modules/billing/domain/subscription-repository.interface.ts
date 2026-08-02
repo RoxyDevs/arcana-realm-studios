@@ -16,4 +16,10 @@ export interface ISubscriptionRepository {
     stripeSubscriptionId: string,
     status: SubscriptionStatus,
   ): Promise<void>;
+  /** Complimentary access granted by an OWNER/ADMIN — no Stripe fields involved. */
+  grantManual(params: {
+    userId: string;
+    tier: SubscriptionTier;
+    currentPeriodEnd: Date | null;
+  }): Promise<Subscription>;
 }

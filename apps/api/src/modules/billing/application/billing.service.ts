@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import type { WalletBalanceDto } from "@arcana/types";
+import type { SubscriptionTier, WalletBalanceDto, SubscriptionStatusDto } from "@arcana/types";
 import { AUDIT_LOGGER, type IAuditLogger } from "../../../common/domain/audit-logger.interface";
 import { PAYMENT_PROVIDER, type IPaymentProvider } from "../domain/payment-provider.interface";
 import { WALLET_REPOSITORY, type IWalletRepository } from "../domain/wallet-repository.interface";
@@ -60,6 +60,38 @@ export class BillingService {
     });
 
     return { creditBalance: wallet.creditBalance, updatedAt: wallet.updatedAt.toISOString() };
+  }
+
+  /**
+   * Complimentary access — an OWNER/ADMIN grants a tier to a user (including
+   * themselves) with no Stripe checkout involved. Audit-logged like every
+   * other manual grant so it's clear who authorized it and why.
+   */
+  async grantComplimentarySubscription(params: {
+    adminUserId: string;
+    targetUserId: string;
+    tier: SubscriptionTier;
+    expiresAt: Date | null;
+  }): Promise<SubscriptionStatusDto> {
+    const subscription = await this.subscriptions.grantManual({
+      userId: params.targetUserId,
+      tier: params.tier,
+      currentPeriodEnd: params.expiresAt,
+    });
+
+    await this.auditLogger.log({
+      actorId: params.adminUserId,
+      action: "subscription.complimentary_grant",
+      targetType: "User",
+      targetId: params.targetUserId,
+      metadata: { tier: params.tier, expiresAt: params.expiresAt?.toISOString() ?? null },
+    });
+
+    return {
+      tier: subscription.tier,
+      status: subscription.status,
+      currentPeriodEnd: subscription.currentPeriodEnd?.toISOString() ?? null,
+    };
   }
 
   async createCreditCheckout(params: {

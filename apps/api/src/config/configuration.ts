@@ -18,6 +18,8 @@ export interface AppConfig {
     secretKey: string;
     webhookSecret: string;
   };
+  /** Discord IDs that get the OWNER role the moment their account is first created — solves the bootstrap problem of nobody having admin rights yet. */
+  bootstrapOwnerDiscordIds: string[];
 }
 
 export default (): AppConfig => ({
@@ -40,4 +42,8 @@ export default (): AppConfig => ({
     secretKey: process.env.STRIPE_SECRET_KEY ?? "",
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
   },
+  bootstrapOwnerDiscordIds: (process.env.BOOTSTRAP_OWNER_DISCORD_IDS ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean),
 });

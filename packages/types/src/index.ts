@@ -59,6 +59,19 @@ export const CreateCheckoutSessionSchema = z.object({
 });
 export type CreateCheckoutSessionDto = z.infer<typeof CreateCheckoutSessionSchema>;
 
+export interface SubscriptionStatusDto {
+  tier: SubscriptionTier;
+  status: string;
+  currentPeriodEnd: string | null;
+}
+
+export const GrantSubscriptionSchema = z.object({
+  targetUserId: z.string().min(1),
+  tier: SubscriptionTierSchema,
+  expiresAt: z.string().datetime().nullable(),
+});
+export type GrantSubscriptionDto = z.infer<typeof GrantSubscriptionSchema>;
+
 export const AdjustWalletSchema = z.object({
   targetUserId: z.string().min(1),
   amount: z.number().int().refine((v) => v !== 0, "amount must not be zero"),

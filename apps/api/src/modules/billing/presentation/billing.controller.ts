@@ -11,7 +11,7 @@ import {
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
-import type { AuthenticatedUserDto, WalletBalanceDto } from "@arcana/types";
+import type { AuthenticatedUserDto, SubscriptionStatusDto, WalletBalanceDto } from "@arcana/types";
 import { JwtAuthGuard } from "../../auth/infrastructure/jwt-auth.guard";
 import { RolesGuard } from "../../../common/guards/roles.guard";
 import { Roles } from "../../../common/decorators/roles.decorator";
@@ -20,6 +20,7 @@ import { BillingService } from "../application/billing.service";
 import { CreateCreditCheckoutDto } from "./create-credit-checkout.dto";
 import { CreateSubscriptionCheckoutDto } from "./create-subscription-checkout.dto";
 import { AdjustWalletRequestDto } from "./adjust-wallet.dto";
+import { GrantSubscriptionRequestDto } from "./grant-subscription.dto";
 import type { CheckoutSessionResult } from "../domain/payment-provider.interface";
 
 @ApiTags("billing")
@@ -89,6 +90,25 @@ export class BillingController {
       targetUserId: dto.targetUserId,
       amount: dto.amount,
       reason: dto.reason,
+    });
+  }
+
+  @Post("subscriptions/grant")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("OWNER", "ADMIN")
+  @ApiOperation({
+    summary:
+      "Admin-only: grants a Plus/Premium tier to any user (including yourself) for free — no Stripe checkout, always audit-logged",
+  })
+  grantSubscription(
+    @CurrentUser() admin: AuthenticatedUserDto,
+    @Body() dto: GrantSubscriptionRequestDto,
+  ): Promise<SubscriptionStatusDto> {
+    return this.billingService.grantComplimentarySubscription({
+      adminUserId: admin.id,
+      targetUserId: dto.targetUserId,
+      tier: dto.tier,
+      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
     });
   }
 

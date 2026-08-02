@@ -54,4 +54,30 @@ export class PrismaSubscriptionRepository implements ISubscriptionRepository {
       data: { status },
     });
   }
+
+  async grantManual(params: {
+    userId: string;
+    tier: SubscriptionTier;
+    currentPeriodEnd: Date | null;
+  }): Promise<Subscription> {
+    const existingManual = await this.prisma.subscription.findFirst({
+      where: { userId: params.userId, stripeSubscriptionId: null },
+    });
+
+    if (existingManual) {
+      return this.prisma.subscription.update({
+        where: { id: existingManual.id },
+        data: { tier: params.tier, status: "ACTIVE", currentPeriodEnd: params.currentPeriodEnd },
+      });
+    }
+
+    return this.prisma.subscription.create({
+      data: {
+        userId: params.userId,
+        tier: params.tier,
+        status: "ACTIVE",
+        currentPeriodEnd: params.currentPeriodEnd,
+      },
+    });
+  }
 }
