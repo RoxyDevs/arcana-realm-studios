@@ -23,7 +23,8 @@ export interface AppConfig {
 }
 
 export default (): AppConfig => ({
-  port: parseInt(process.env.API_PORT ?? "4000", 10),
+  // Most hosts (Railway included) inject their own PORT and expect the app to bind to it.
+  port: parseInt(process.env.PORT ?? process.env.API_PORT ?? "4000", 10),
   webUrl: process.env.WEB_URL ?? "http://localhost:3000",
   nodeEnv: process.env.NODE_ENV ?? "development",
   redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
