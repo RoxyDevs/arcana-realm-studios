@@ -34,14 +34,14 @@ export function BotLicensePanel() {
   });
 
   return (
-    <section className="mt-4 rounded-xl border border-arcana-border bg-arcana-surface p-6">
-      <h2 className="text-sm font-medium text-arcana-textMuted">Bot time for your room</h2>
+    <section className="mt-4 rounded-xl border border-arcana-border bg-arcana-surface/80 p-6 backdrop-blur-sm">
+      <h2 className="text-sm font-medium uppercase tracking-wide text-arcana-cyan">Bot time for your room</h2>
 
       <input
         value={roomId}
         onChange={(e) => setRoomId(e.target.value)}
         placeholder="Room ID"
-        className="mt-3 w-full rounded-md border border-arcana-border bg-arcana-bg px-3 py-2 text-sm text-arcana-text placeholder:text-arcana-textMuted"
+        className="mt-3 w-full rounded-md border border-arcana-border bg-arcana-bg px-3 py-2 text-sm text-arcana-text placeholder:text-arcana-textMuted focus:border-arcana-cyan/70 focus:shadow-neon-cyan-sm focus:outline-none"
       />
 
       {roomId && status && (
@@ -61,7 +61,7 @@ export function BotLicensePanel() {
               type="button"
               disabled={!roomId || purchase.isPending}
               onClick={() => purchase.mutate(plan)}
-              className="rounded-lg border border-arcana-border bg-arcana-bg px-3 py-3 text-left text-sm text-arcana-text transition-colors hover:border-arcana-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-arcana-border bg-arcana-bg px-3 py-3 text-left text-sm text-arcana-text transition-all hover:border-arcana-cyan/70 hover:shadow-neon-cyan-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               <div className="font-medium">{def.label}</div>
               <div className="text-arcana-textMuted">{def.credits} credits</div>

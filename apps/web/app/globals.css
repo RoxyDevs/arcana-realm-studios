@@ -7,6 +7,12 @@
 }
 
 body {
-  background-color: #0a0a0f;
-  color: #e4e4ec;
+  background-color: #05050a;
+  color: #e8e8f5;
+  background-image:
+    linear-gradient(rgba(0, 255, 242, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 242, 0.06) 1px, transparent 1px),
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(176, 38, 255, 0.25), transparent);
+  background-size: 48px 48px, 48px 48px, 100% 100%;
+  background-attachment: fixed;
 }
