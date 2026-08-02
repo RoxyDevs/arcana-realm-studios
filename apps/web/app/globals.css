@@ -16,3 +16,32 @@ body {
   background-size: 48px 48px, 48px 48px, 100% 100%;
   background-attachment: fixed;
 }
+
+@keyframes grid-drift {
+  from {
+    background-position: 0 0, 0 0, 50% -10%;
+  }
+  to {
+    background-position: 48px 48px, 48px 48px, 52% -8%;
+  }
+}
+
+@keyframes neon-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.35);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    animation: grid-drift 50s linear infinite alternate;
+  }
+
+  .animate-neon-pulse {
+    animation: neon-pulse 2.6s ease-in-out infinite;
+  }
+}
