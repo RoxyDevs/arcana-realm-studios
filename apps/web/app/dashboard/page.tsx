@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { AuthenticatedUserDto, WalletBalanceDto } from "@arcana/types";
 import { apiFetch } from "@/lib/api-client";
 import { BotLicensePanel } from "@/components/bot-license-panel";
+import { ManualPaymentInfo } from "@/components/manual-payment-info";
 
 export default function DashboardPage() {
   const { data: user, isLoading: userLoading } = useQuery({
@@ -34,6 +35,8 @@ export default function DashboardPage() {
           {walletLoading ? "Loading…" : `${wallet?.creditBalance ?? 0} credits`}
         </p>
       </section>
+
+      <ManualPaymentInfo />
 
       <BotLicensePanel />
     </main>
