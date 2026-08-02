@@ -9,12 +9,26 @@
 body {
   background-color: #05050a;
   color: #e8e8f5;
+}
+
+.arcana-bg-layer {
   background-image:
     linear-gradient(rgba(0, 255, 242, 0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 255, 242, 0.06) 1px, transparent 1px),
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(176, 38, 255, 0.25), transparent);
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(176, 38, 255, 0.3), transparent);
   background-size: 48px 48px, 48px 48px, 100% 100%;
-  background-attachment: fixed;
+}
+
+.arcana-scanline {
+  top: -6rem;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(0, 255, 242, 0.09) 45%,
+    rgba(0, 255, 242, 0.14) 50%,
+    rgba(0, 255, 242, 0.09) 55%,
+    transparent
+  );
 }
 
 @keyframes grid-drift {
@@ -23,6 +37,25 @@ body {
   }
   to {
     background-position: 48px 48px, 48px 48px, 52% -8%;
+  }
+}
+
+@keyframes hue-cycle {
+  0%,
+  100% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(45deg);
+  }
+}
+
+@keyframes scan-sweep {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(100vh + 12rem));
   }
 }
 
@@ -37,8 +70,14 @@ body {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  body {
-    animation: grid-drift 50s linear infinite alternate;
+  .arcana-bg-layer {
+    animation:
+      grid-drift 50s linear infinite alternate,
+      hue-cycle 22s ease-in-out infinite;
+  }
+
+  .arcana-scanline {
+    animation: scan-sweep 7s linear infinite;
   }
 
   .animate-neon-pulse {
