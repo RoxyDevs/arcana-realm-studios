@@ -1,0 +1,308 @@
+// Arcana Realm Studios — core data model.
+// Feature-first: models are grouped by module (Identity, Billing, Music, Guardian)
+// but live in one schema because they share foreign keys and a single transaction boundary.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity & Access (RBAC)
+// ---------------------------------------------------------------------------
+
+enum Role {
+  OWNER
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  discordId     String    @unique
+  username      String
+  email         String?   @unique
+  avatarUrl     String?
+  roles         Role[]    @default([MEMBER])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  refreshTokens RefreshToken[]
+  wallet        Wallet?
+  subscriptions Subscription[]
+  ownedRooms    Room[]           @relation("RoomOwner")
+  playlists     Playlist[]
+  queueRequests MusicQueueItem[]
+  reviewedReports GuardianReport[] @relation("ReportReviewer")
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+// One-party consent, own-service token logging (see .env / security policy):
+// this table only ever stores hashes of tokens issued by Arcana itself.
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  issuedIp   String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId])
+  @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Rooms — a Room is a community space owned/hosted by a User.
+// `imvuRoomId` is an opaque external reference supplied by the (adapter-isolated)
+// IMVU integration; Arcana never assumes a documented IMVU room API exists.
+// ---------------------------------------------------------------------------
+
+model Room {
+  id          String   @id @default(cuid())
+  ownerId     String
+  imvuRoomId  String?  @unique
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner            User              @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  musicQueue       MusicQueueItem[]
+  guardianSettings GuardianSettings?
+  guardianReports  GuardianReport[]
+
+  @@index([ownerId])
+  @@map("rooms")
+}
+
+// ---------------------------------------------------------------------------
+// Billing (Arcana Dashboard) — token/credit wallet + Stripe subscriptions.
+// ---------------------------------------------------------------------------
+
+enum SubscriptionTier {
+  FREE
+  PLUS
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum TransactionType {
+  PURCHASE
+  SUBSCRIPTION_RENEWAL
+  CONSUMPTION
+  REFUND
+  MANUAL_ADJUSTMENT
+}
+
+model Wallet {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  creditBalance Int      @default(0)
+  updatedAt     DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id                    String          @id @default(cuid())
+  walletId              String
+  type                  TransactionType
+  amount                Int
+  stripePaymentIntentId String?         @unique
+  metadata              Json?
+  createdAt             DateTime        @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@map("transactions")
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String
+  tier                 SubscriptionTier   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?            @unique
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+// ---------------------------------------------------------------------------
+// Arcana Music — playlists, tracks, per-room queue.
+// ---------------------------------------------------------------------------
+
+enum TrackSource {
+  SPOTIFY
+  YOUTUBE
+  UPLOAD
+}
+
+model Track {
+  id           String      @id @default(cuid())
+  source       TrackSource
+  externalId   String
+  title        String
+  artist       String?
+  durationSec  Int
+  thumbnailUrl String?
+  createdAt    DateTime    @default(now())
+
+  playlists PlaylistTrack[]
+  queueItems MusicQueueItem[]
+
+  @@unique([source, externalId])
+  @@map("tracks")
+}
+
+model Playlist {
+  id        String   @id @default(cuid())
+  ownerId   String
+  name      String
+  isPublic  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner  User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tracks PlaylistTrack[]
+
+  @@index([ownerId])
+  @@map("playlists")
+}
+
+model PlaylistTrack {
+  playlistId String
+  trackId    String
+  position   Int
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track    Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@id([playlistId, trackId])
+  @@map("playlist_tracks")
+}
+
+model MusicQueueItem {
+  id            String    @id @default(cuid())
+  roomId        String
+  trackId       String
+  requestedById String
+  position      Int
+  playedAt      DateTime?
+  createdAt     DateTime  @default(now())
+
+  room        Room  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  track       Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  requestedBy User  @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+
+  @@index([roomId, position])
+  @@map("music_queue_items")
+}
+
+// ---------------------------------------------------------------------------
+// Arcana Guardian — consent-scoped moderation: reports are about incidents
+// that happened inside a room the reporter hosts/moderates, never third-party
+// surveillance. `subjectIdentifier` is the accused party's public IMVU handle,
+// not a tracked account — Arcana never resolves it to a live location/session.
+// ---------------------------------------------------------------------------
+
+enum GuardianReportCategory {
+  HARASSMENT
+  SPAM
+  RAID
+  HATE_SPEECH
+  BAN_EVASION
+  OTHER
+}
+
+enum GuardianReportStatus {
+  PENDING
+  CONFIRMED
+  DISMISSED
+}
+
+model GuardianSettings {
+  id                 String  @id @default(cuid())
+  roomId             String  @unique
+  antiSpamEnabled    Boolean @default(true)
+  antiRaidEnabled    Boolean @default(true)
+  autoModEnabled     Boolean @default(true)
+  sharedBlacklistOptIn Boolean @default(false)
+  updatedAt          DateTime @updatedAt
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@map("guardian_settings")
+}
+
+model GuardianReport {
+  id                String                  @id @default(cuid())
+  roomId            String
+  subjectIdentifier String
+  category          GuardianReportCategory
+  description       String
+  evidenceUrl       String?
+  status            GuardianReportStatus    @default(PENDING)
+  reviewedById      String?
+  reviewedAt        DateTime?
+  createdAt         DateTime                @default(now())
+
+  room       Room  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("ReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([subjectIdentifier])
+  @@map("guardian_reports")
+}
+
+// Aggregated, opt-in community reputation — derived only from confirmed
+// GuardianReports across rooms that opted into the shared network.
+model ReputationScore {
+  id                String   @id @default(cuid())
+  subjectIdentifier String   @unique
+  score             Int      @default(0)
+  confirmedReports  Int      @default(0)
+  lastUpdatedAt     DateTime @updatedAt
+
+  @@map("reputation_scores")
+}

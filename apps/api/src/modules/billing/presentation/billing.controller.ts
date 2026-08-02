@@ -1,0 +1,86 @@
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Post,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
+import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import type { Request } from "express";
+import type { AuthenticatedUserDto, WalletBalanceDto } from "@arcana/types";
+import { JwtAuthGuard } from "../../auth/infrastructure/jwt-auth.guard";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import { BillingService } from "../application/billing.service";
+import { CreateCreditCheckoutDto } from "./create-credit-checkout.dto";
+import { CreateSubscriptionCheckoutDto } from "./create-subscription-checkout.dto";
+import type { CheckoutSessionResult } from "../domain/payment-provider.interface";
+
+@ApiTags("billing")
+@Controller("billing")
+export class BillingController {
+  constructor(private readonly billingService: BillingService) {}
+
+  @Get("wallet")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Returns the current user's credit balance" })
+  getWallet(@CurrentUser() user: AuthenticatedUserDto): Promise<WalletBalanceDto> {
+    return this.billingService.getWalletBalance(user.id);
+  }
+
+  @Post("checkout/credits")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Creates a Stripe Checkout session to purchase credits" })
+  createCreditCheckout(
+    @CurrentUser() user: AuthenticatedUserDto,
+    @Body() dto: CreateCreditCheckoutDto,
+  ): Promise<CheckoutSessionResult> {
+    if (!user.email) {
+      throw new BadRequestException("A verified email is required to purchase credits");
+    }
+    return this.billingService.createCreditCheckout({
+      userId: user.id,
+      email: user.email,
+      priceId: dto.priceId,
+      credits: dto.credits,
+      successUrl: dto.successUrl,
+      cancelUrl: dto.cancelUrl,
+    });
+  }
+
+  @Post("checkout/subscription")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Creates a Stripe Checkout session for a Plus/Premium subscription" })
+  createSubscriptionCheckout(
+    @CurrentUser() user: AuthenticatedUserDto,
+    @Body() dto: CreateSubscriptionCheckoutDto,
+  ): Promise<CheckoutSessionResult> {
+    if (!user.email) {
+      throw new BadRequestException("A verified email is required to subscribe");
+    }
+    return this.billingService.createSubscriptionCheckout({
+      userId: user.id,
+      email: user.email,
+      tier: dto.tier,
+      successUrl: dto.successUrl,
+      cancelUrl: dto.cancelUrl,
+    });
+  }
+
+  @Post("webhook")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Stripe webhook endpoint — verifies signature via req.rawBody" })
+  async handleWebhook(
+    @Req() req: Request & { rawBody?: Buffer },
+    @Headers("stripe-signature") signature: string,
+  ): Promise<{ received: true }> {
+    if (!req.rawBody || !signature) {
+      throw new BadRequestException("Missing raw body or Stripe signature");
+    }
+    await this.billingService.handleWebhook(req.rawBody, signature);
+    return { received: true };
+  }
+}

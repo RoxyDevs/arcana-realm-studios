@@ -1,0 +1,43 @@
+export interface AppConfig {
+  port: number;
+  webUrl: string;
+  nodeEnv: string;
+  redisUrl: string;
+  jwt: {
+    accessSecret: string;
+    refreshSecret: string;
+    accessTtl: string;
+    refreshTtl: string;
+  };
+  discord: {
+    clientId: string;
+    clientSecret: string;
+    callbackUrl: string;
+  };
+  stripe: {
+    secretKey: string;
+    webhookSecret: string;
+  };
+}
+
+export default (): AppConfig => ({
+  port: parseInt(process.env.API_PORT ?? "4000", 10),
+  webUrl: process.env.WEB_URL ?? "http://localhost:3000",
+  nodeEnv: process.env.NODE_ENV ?? "development",
+  redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
+  jwt: {
+    accessSecret: process.env.JWT_ACCESS_SECRET ?? "",
+    refreshSecret: process.env.JWT_REFRESH_SECRET ?? "",
+    accessTtl: process.env.JWT_ACCESS_TTL ?? "15m",
+    refreshTtl: process.env.JWT_REFRESH_TTL ?? "30d",
+  },
+  discord: {
+    clientId: process.env.DISCORD_CLIENT_ID ?? "",
+    clientSecret: process.env.DISCORD_CLIENT_SECRET ?? "",
+    callbackUrl: process.env.DISCORD_CALLBACK_URL ?? "",
+  },
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY ?? "",
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+  },
+});

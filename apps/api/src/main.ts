@@ -1,0 +1,47 @@
+import "reflect-metadata";
+import { NestFactory } from "@nestjs/core";
+import { ConfigService } from "@nestjs/config";
+import { ValidationPipe } from "@nestjs/common";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import cookieParser from "cookie-parser";
+import { AppModule } from "./app.module";
+import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+import type { AppConfig } from "./config/configuration";
+
+async function bootstrap(): Promise<void> {
+  // rawBody:true keeps req.rawBody available (needed for Stripe signature
+  // verification) while still parsing req.body as JSON everywhere else.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const config = app.get(ConfigService<AppConfig, true>);
+
+  app.use(cookieParser());
+
+  app.enableCors({
+    origin: config.get("webUrl", { infer: true }),
+    credentials: true,
+  });
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle("Arcana Realm Studios API")
+    .setDescription("REST API for the Arcana Realm Studios platform (Music, Guardian, Billing, Intelligence)")
+    .setVersion("0.1.0")
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup("docs", app, document);
+
+  const port = config.get("port", { infer: true });
+  await app.listen(port);
+}
+
+void bootstrap();
