@@ -4,6 +4,7 @@ dist/
 .turbo/
 coverage/
 *.log
+*.tsbuildinfo
 .env
 .env.local
 .env.*.local
