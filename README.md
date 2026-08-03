@@ -1,10 +1,48 @@
 # Arcana Realm Studios
 
-The operating system for IMVU room owners, DJs, creators, and moderators — built as a
-set of independent modules (Music, Guardian, Intelligence, Studio, API, Dashboard).
+**The operating system for IMVU room owners, DJs, creators, and moderators.**
 
-See [`CLAUDE.md`](./CLAUDE.md) for the full product vision, module list, and engineering
-standards this codebase follows.
+![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
+![NestJS](https://img.shields.io/badge/NestJS-10-E0234E?logo=nestjs&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-PostgreSQL-2D3748?logo=prisma&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![pnpm](https://img.shields.io/badge/pnpm-workspaces-F69220?logo=pnpm&logoColor=white)
+
+Most IMVU room owners run their community on a patchwork of separate tools — one bot
+for music, another for moderation, a spreadsheet for tracking who paid for what. Arcana
+Realm Studios brings that into a single platform instead: a real AutoDJ radio bot with
+no bot-avatar required for audio, AI-assisted moderation, creator tooling, and analytics,
+all sharing one account, one wallet, and one dashboard.
+
+**Live:** dashboard at [arcana-realm-web.vercel.app](https://arcana-realm-web.vercel.app) ·
+API docs at `/docs` on the deployed API
+
+See [`CLAUDE.md`](./CLAUDE.md) for the full product vision and the engineering standards
+(Clean Architecture, the External Integrations Policy, etc.) this codebase follows.
+
+## Modules
+
+| Module | What it does |
+|---|---|
+| 🎧 **Arcana Music** | AutoDJ radio streamed straight into IMVU's native "Transmisión de Radio" field — no bot avatar needed for audio. Upload your own tracks; AI playlist matching against Spotify/YouTube taste is on the roadmap. |
+| 🛡️ **Arcana Guardian** | Anti-raid, anti-spam, behavior analysis, opt-in reputation scoring — scoped to incidents inside rooms you actually host or moderate. |
+| 📊 **Arcana Intelligence** | Room analytics, activity heatmaps, host dashboards. |
+| 🎨 **Arcana Studio** | Creator tools — asset backup, AI texture generation. |
+| 🔌 **Arcana API** | REST + webhooks + a plugin SDK for third-party integrations. |
+| ⚙️ **Arcana Dashboard** | Billing, credit wallet, subscriptions, bot-time licenses, admin tools — all in one place. |
+
+Status of each module's implementation is tracked in the table further down.
+
+## Table of contents
+
+1. [Architecture](#1-architecture)
+2. [Database](#2-database)
+3. [API](#3-api)
+4. [Frontend](#4-frontend)
+5. [Security](#5-security)
+6. [Getting started](#6-getting-started)
+7. [Testing strategy](#7-testing-strategy)
+8. [Future improvements](#8-future-improvements)
 
 ## 1. Architecture
 
@@ -33,7 +71,7 @@ domain interface (e.g. `IPaymentProvider`, `ITrackProvider`) so a provider can b
 replaced without touching business logic — see the **External Integrations Policy** in
 `CLAUDE.md`.
 
-Modules implemented so far:
+Implementation status, module by module:
 
 | Module | Status | Notes |
 |---|---|---|
