@@ -71,25 +71,35 @@ here) and the matching `STREAMING_INTERNAL_TOKEN`.
 ## Verified locally
 
 There's no Docker daemon in the environment this was developed in, so the
-Dockerfile image itself has never been built — but the actual `icecast2` and
-`liquidsoap` packages (matching Debian bookworm's versions) were installed
-directly and the real, unmodified scripts were run end-to-end: Icecast
-started from `icecast.xml.template`, a real `generate-liquidsoap.sh` output
-loaded into a real Liquidsoap process, a real track fetched over HTTP via
-the real `next-track.sh`, and a listener `curl` confirmed genuine
-LAME-encoded MP3 bytes coming off the `/live/<streamKey>.mp3` mount. This
-caught two real bugs that a Docker-only "does it build" check would have
-missed, since both only surface once the container actually tries to run
-as root (which it does — no `USER` directive):
+Dockerfile image itself has never been built locally — but the actual
+`icecast2` and `liquidsoap` packages were installed directly (first Ubuntu's
+2.2.4, then cross-checked against Debian bookworm's actual 2.1.3 — see
+below) and the real, unmodified scripts were run end-to-end: Icecast started
+from `icecast.xml.template`, a real `generate-liquidsoap.sh` output loaded
+into a real Liquidsoap process, a real track fetched over HTTP via the real
+`next-track.sh`, and a listener `curl` confirmed genuine LAME-encoded MP3
+bytes coming off the `/live/<streamKey>.mp3` mount. This — plus the actual
+first Railway deploy — caught three real bugs that a Docker-only "does it
+build" check would have missed:
 
-- **Icecast refuses to start as root** without an explicit privilege drop.
-  Fixed by adding `<changeowner><user>icecast2</user><group>icecast</group></changeowner>`
+- **Icecast refuses to start as root** without an explicit privilege drop
+  (surfaces only once the container actually tries to run as root, which it
+  does — no `USER` directive). Fixed by adding
+  `<changeowner><user>icecast2</user><group>icecast</group></changeowner>`
   to `icecast.xml.template` (the Debian package's own `icecast2` system user).
-- **Liquidsoap 2.2.x hard-exits on root** ("security exit... Override with
+- **Liquidsoap hard-exits on root** ("security exit... Override with
   `settings.init.allow_root := true`") — but only at actual stream startup,
   not during `--check`, which is why a syntax-only check wouldn't have
-  caught it. Fixed by emitting `settings.init.allow_root := true` at the top
-  of every generated `.liq` script in `generate-liquidsoap.sh`.
+  caught it.
+- **Debian bookworm ships Liquidsoap 2.1.3, not 2.2.x** — confirmed after the
+  first real Railway deploy failed with `this value has type () -> _ but it
+  should be a subtype of ref(_)` on `settings.log.level := 3`. The newer
+  `settings.path := value` ref-assignment syntax isn't supported in 2.1.3;
+  `settings.path.set(value)` is the form both 2.1.x and 2.2.x accept (2.2.x
+  only emits a deprecation warning). `generate-liquidsoap.sh` now emits
+  `settings.log.level.set(3)` / `settings.init.allow_root.set(true)`
+  accordingly — re-verified against a real Icecast+Liquidsoap 2.2.4 run
+  locally, and matches Liquidsoap's own documented 2.1→2.2 migration path.
 
 What's still unverified is the Dockerfile build itself and Railway's
 specific networking (public domain → container port 8000) — those need a
