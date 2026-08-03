@@ -11,8 +11,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const message =
-      exception instanceof HttpException ? exception.getResponse() : "Internal server error";
+    // HttpException.getResponse() for `new ConflictException("...")` etc. is not
+    // the plain string passed in — it's NestJS's default body shape,
+    // `{ message, error, statusCode }`. Passing that through as-is meant
+    // clients saw a nested object instead of the message, rendering as
+    // "[object Object]". Normalize to always emit a flat string (joining
+    // ValidationPipe's string[] messages) so every client can just read
+    // `body.message` directly.
+    const rawResponse = exception instanceof HttpException ? exception.getResponse() : "Internal server error";
+    const rawMessage =
+      typeof rawResponse === "string" ? rawResponse : (rawResponse as Record<string, unknown>).message;
+    const message = Array.isArray(rawMessage) ? rawMessage.join(", ") : (rawMessage ?? "Internal server error");
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(exception instanceof Error ? exception.stack : exception);
