@@ -38,6 +38,7 @@ model User {
   ownedRooms    Room[]           @relation("RoomOwner")
   playlists     Playlist[]
   queueRequests MusicQueueItem[]
+  uploadedTracks Track[]         @relation("UploadedTracks")
   reviewedReports GuardianReport[] @relation("ReportReviewer")
   auditLogs     AuditLog[]
   grantedLicenses BotLicense[]     @relation("LicenseGrantedBy")
@@ -241,7 +242,16 @@ model Track {
   thumbnailUrl String?
   createdAt    DateTime    @default(now())
 
-  playlists PlaylistTrack[]
+  // Only set when source = UPLOAD — the room's own licensed/owned audio,
+  // stored in object storage (Cloudflare R2), never a copy of a
+  // Spotify/YouTube stream. genreTags feeds the AI playlist matcher.
+  uploadedById String?
+  storageKey   String?
+  fileUrl      String?
+  genreTags    String[]    @default([])
+
+  uploadedBy User?             @relation("UploadedTracks", fields: [uploadedById], references: [id], onDelete: SetNull)
+  playlists  PlaylistTrack[]
   queueItems MusicQueueItem[]
 
   @@unique([source, externalId])

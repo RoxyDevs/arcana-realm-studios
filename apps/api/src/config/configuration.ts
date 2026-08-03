@@ -33,6 +33,15 @@ export interface AppConfig {
     /** Base URL of the Icecast/HLS server rooms broadcast from once verified + licensed. */
     baseUrl: string;
   };
+  objectStorage: {
+    /** Cloudflare R2 — S3-compatible. Empty until configured; upload endpoints fail loudly rather than silently no-op. */
+    accountId: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+    bucket: string;
+    /** Public base URL the bucket is served from (R2 public bucket URL or a custom domain). */
+    publicBaseUrl: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -65,5 +74,12 @@ export default (): AppConfig => ({
   },
   streaming: {
     baseUrl: process.env.STREAMING_BASE_URL ?? "https://stream.arcanarealmstudios.com",
+  },
+  objectStorage: {
+    accountId: process.env.R2_ACCOUNT_ID ?? "",
+    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
+    bucket: process.env.R2_BUCKET ?? "",
+    publicBaseUrl: process.env.R2_PUBLIC_BASE_URL ?? "",
   },
 });

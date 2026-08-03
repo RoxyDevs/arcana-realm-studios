@@ -159,6 +159,7 @@ export interface TrackDto {
   artist: string | null;
   durationSec: number;
   thumbnailUrl: string | null;
+  genreTags: string[];
 }
 
 export interface QueueItemDto {

@@ -85,7 +85,11 @@ using `req.rawBody` (see `main.ts`, `NestFactory.create(AppModule, { rawBody: tr
 
 Music: all endpoints are scoped under `/rooms/:roomId/queue` and require the caller to
 own the room (`IRoomAccessChecker`, now shared under `common/domain` since Bot Licenses
-uses it too).
+uses it too). `POST /rooms/:roomId/tracks/upload` (multipart) uploads a room owner's own
+audio into the track library that AutoDJ actually streams from — stored in Cloudflare R2
+via the `IObjectStorage` port (`common/infrastructure/r2-object.storage.ts`). Spotify/
+YouTube `enqueue()` only ever resolves *metadata* through their official APIs; the
+platform never redistributes their copyrighted audio.
 
 Bot Licenses: `GET /rooms/:roomId/license` (status), `POST /rooms/:roomId/license/purchase`
 (room owner spends wallet credits), `POST /rooms/:roomId/license/grant` (`OWNER`/`ADMIN`
