@@ -122,6 +122,21 @@ export interface BotLicenseStatusDto {
   expiresAt: string | null;
 }
 
+/** Buying bot time for this many rooms (or more) in one purchase gets a flat discount off the total. */
+export const BULK_LICENSE_DISCOUNT = { minRooms: 10, percentOff: 10 } as const;
+
+export const BulkPurchaseLicenseSchema = z.object({
+  roomIds: z.array(z.string().min(1)).min(1),
+  plan: BotLicensePlanSchema,
+});
+export type BulkPurchaseLicenseDto = z.infer<typeof BulkPurchaseLicenseSchema>;
+
+export interface BulkLicensePurchaseResultDto {
+  totalCharged: number;
+  discountApplied: boolean;
+  rooms: BotLicenseStatusDto[];
+}
+
 // ---------------------------------------------------------------------------
 // Rooms — binding a user's IMVU room to Arcana (ownership verified via a
 // token placed in the room's description, mirroring Vusic's flow).

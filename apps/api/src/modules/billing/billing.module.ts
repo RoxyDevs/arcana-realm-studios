@@ -9,11 +9,12 @@ import { SUBSCRIPTION_REPOSITORY } from "./domain/subscription-repository.interf
 import { PrismaSubscriptionRepository } from "./infrastructure/prisma-subscription.repository";
 import { BotLicenseService } from "./application/bot-license.service";
 import { BotLicenseController } from "./presentation/bot-license.controller";
+import { BulkLicenseController } from "./presentation/bulk-license.controller";
 import { BOT_LICENSE_REPOSITORY } from "./domain/bot-license-repository.interface";
 import { PrismaBotLicenseRepository } from "./infrastructure/prisma-bot-license.repository";
 
 @Module({
-  controllers: [BillingController, BotLicenseController],
+  controllers: [BillingController, BotLicenseController, BulkLicenseController],
   providers: [
     BillingService,
     BotLicenseService,

@@ -1,5 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { BOT_LICENSE_PLANS, type BotLicensePlan, type BotLicenseStatusDto } from "@arcana/types";
+import {
+  BOT_LICENSE_PLANS,
+  BULK_LICENSE_DISCOUNT,
+  type BotLicensePlan,
+  type BotLicenseStatusDto,
+  type BulkLicensePurchaseResultDto,
+} from "@arcana/types";
 import { ROOM_ACCESS_CHECKER, type IRoomAccessChecker } from "../../../common/domain/room-access.interface";
 import { AUDIT_LOGGER, type IAuditLogger } from "../../../common/domain/audit-logger.interface";
 import { WALLET_REPOSITORY, type IWalletRepository } from "../domain/wallet-repository.interface";
@@ -65,6 +71,56 @@ export class BotLicenseService {
     });
 
     return { active: true, plan: license.plan as BotLicensePlan, expiresAt: license.expiresAt.toISOString() };
+  }
+
+  /**
+   * Self-service purchase for many rooms in one go — the same plan for each,
+   * charged once as a single wallet transaction. Buying
+   * BULK_LICENSE_DISCOUNT.minRooms or more at once applies a flat percentage
+   * off the whole total.
+   */
+  async bulkPurchaseWithCredits(
+    userId: string,
+    roomIds: string[],
+    plan: BotLicensePlan,
+  ): Promise<BulkLicensePurchaseResultDto> {
+    const uniqueRoomIds = Array.from(new Set(roomIds));
+    for (const roomId of uniqueRoomIds) {
+      await this.roomAccess.assertOwner(roomId, userId);
+    }
+
+    const planDef = BOT_LICENSE_PLANS[plan];
+    const listTotal = planDef.credits * uniqueRoomIds.length;
+    const discountApplied = uniqueRoomIds.length >= BULK_LICENSE_DISCOUNT.minRooms;
+    const total = discountApplied
+      ? Math.round(listTotal * (1 - BULK_LICENSE_DISCOUNT.percentOff / 100))
+      : listTotal;
+    const perRoomCost = Math.round(total / uniqueRoomIds.length);
+
+    await this.wallets.applyTransaction({
+      userId,
+      amount: -total,
+      type: "CONSUMPTION",
+      metadata: { roomIds: uniqueRoomIds, plan, reason: "bulk_bot_license_purchase", discountApplied },
+    });
+
+    const rooms: BotLicenseStatusDto[] = [];
+    for (const roomId of uniqueRoomIds) {
+      const startsAt = await this.resolveStartDate(roomId);
+      const expiresAt = new Date(startsAt.getTime() + planDef.days * 86_400_000);
+      const license = await this.licenses.create({
+        roomId,
+        plan,
+        source: "CREDIT_PURCHASE",
+        creditsCost: perRoomCost,
+        startsAt,
+        expiresAt,
+        grantedById: null,
+      });
+      rooms.push({ active: true, plan: license.plan as BotLicensePlan, expiresAt: license.expiresAt.toISOString() });
+    }
+
+    return { totalCharged: total, discountApplied, rooms };
   }
 
   /**

@@ -95,9 +95,12 @@ platform never redistributes their copyrighted audio.
 
 Bot Licenses: `GET /rooms/:roomId/license` (status), `POST /rooms/:roomId/license/purchase`
 (room owner spends wallet credits), `POST /rooms/:roomId/license/grant` (`OWNER`/`ADMIN`
-only — manual grant for a PayPal.me/VCoin payment). `POST /billing/wallet/adjust`
-(`OWNER`/`ADMIN` only) credits/debits any user's wallet directly for the same
-out-of-band-payment reason, and always writes an `AuditLog` row.
+only — manual grant for a PayPal.me/VCoin payment). `POST /rooms/license/bulk-purchase`
+buys the same plan for several owned rooms in one wallet charge — `BULK_LICENSE_DISCOUNT`
+(`@arcana/types`) applies a flat percentage off the total once you buy for
+`minRooms` or more at once. `POST /billing/wallet/adjust` (`OWNER`/`ADMIN` only)
+credits/debits any user's wallet directly for the same out-of-band-payment reason, and
+always writes an `AuditLog` row.
 
 Rooms (binding your own IMVU room — generalized, not tied to any one example room):
 
