@@ -5,6 +5,10 @@
 
 FROM node:20-slim
 
+# Prisma's query/schema engines need OpenSSL to detect the right engine
+# variant — node:20-slim (Debian slim) doesn't ship it by default.
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 WORKDIR /app
 
