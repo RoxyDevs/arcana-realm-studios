@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BOT_LICENSE_PLANS, type BotLicensePlan, type BotLicenseStatusDto } from "@arcana/types";
+import { BOT_LICENSE_PLANS, type BotLicensePlan, type BotLicenseStatusDto, type RoomDto } from "@arcana/types";
 import { apiFetch, ApiError } from "@/lib/api-client";
 
 const PLAN_ORDER: BotLicensePlan[] = ["DAY_1", "WEEK_1", "MONTH_1", "MONTH_3", "YEAR_1"];
@@ -11,6 +11,19 @@ export function BotLicensePanel() {
   const [roomId, setRoomId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const { data: rooms } = useQuery({
+    queryKey: ["rooms", "mine"],
+    queryFn: () => apiFetch<RoomDto[]>("/rooms/mine"),
+  });
+
+  // Default to the first bound room once the list loads, so there's never a
+  // raw ID for the user to hunt down or mistype.
+  useEffect(() => {
+    if (!roomId && rooms && rooms.length > 0) {
+      setRoomId(rooms[0].id);
+    }
+  }, [rooms, roomId]);
 
   const { data: status } = useQuery({
     queryKey: ["license", roomId],
@@ -37,12 +50,23 @@ export function BotLicensePanel() {
     <section className="mt-4 rounded-xl border border-arcana-border bg-arcana-surface/80 p-6 backdrop-blur-sm">
       <h2 className="font-display text-base font-bold uppercase tracking-wide text-arcana-cyan">Bot time for your room</h2>
 
-      <input
-        value={roomId}
-        onChange={(e) => setRoomId(e.target.value)}
-        placeholder="Room ID"
-        className="mt-3 min-h-[48px] w-full rounded-md border border-arcana-border bg-arcana-bg px-3 py-3 text-base text-arcana-text placeholder:text-arcana-textMuted focus:border-arcana-cyan/70 focus:shadow-neon-cyan-sm focus:outline-none"
-      />
+      {rooms && rooms.length > 0 ? (
+        <select
+          value={roomId}
+          onChange={(e) => setRoomId(e.target.value)}
+          className="mt-3 min-h-[48px] w-full rounded-md border border-arcana-border bg-arcana-bg px-3 py-3 text-base text-arcana-text focus:border-arcana-cyan/70 focus:shadow-neon-cyan-sm focus:outline-none"
+        >
+          {rooms.map((room) => (
+            <option key={room.id} value={room.id}>
+              {room.name} ({room.imvuRoomId})
+            </option>
+          ))}
+        </select>
+      ) : (
+        <p className="mt-3 text-base text-arcana-textMuted">
+          Bind a room above first, then come back here to buy it bot time.
+        </p>
+      )}
 
       {roomId && status && (
         <p className="mt-2 text-base text-arcana-textMuted">
