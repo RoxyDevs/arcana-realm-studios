@@ -21,6 +21,14 @@ export class PrismaUserRepository implements IUserRepository {
     return this.prisma.user.findUnique({ where: { discordId } });
   }
 
+  searchByUsername(query: string, limit: number): Promise<User[]> {
+    return this.prisma.user.findMany({
+      where: { username: { contains: query, mode: "insensitive" } },
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
   createFromDiscordProfile(profile: DiscordProfile): Promise<User> {
     const bootstrapOwners = this.config.get("bootstrapOwnerDiscordIds", { infer: true });
     const roles: Role[] = bootstrapOwners.includes(profile.discordId) ? ["OWNER"] : ["MEMBER"];

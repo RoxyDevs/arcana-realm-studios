@@ -7,4 +7,6 @@ export interface IUserRepository {
   findById(id: string): Promise<User | null>;
   findByDiscordId(discordId: string): Promise<User | null>;
   createFromDiscordProfile(profile: DiscordProfile): Promise<User>;
+  /** Case-insensitive username substring search, for admins looking up a user to grant credits/subscriptions to. */
+  searchByUsername(query: string, limit: number): Promise<User[]>;
 }

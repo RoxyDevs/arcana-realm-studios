@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   Req,
   Res,
   UnauthorizedException,
@@ -13,11 +14,13 @@ import { AuthGuard } from "@nestjs/passport";
 import { ConfigService } from "@nestjs/config";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Request, Response } from "express";
-import type { AuthenticatedUserDto } from "@arcana/types";
+import type { AuthenticatedUserDto, UserSummaryDto } from "@arcana/types";
 import type { DiscordProfile } from "../domain/discord-profile.entity";
 import type { AppConfig } from "../../../config/configuration";
 import { AuthService } from "../application/auth.service";
 import { JwtAuthGuard } from "../infrastructure/jwt-auth.guard";
+import { RolesGuard } from "../../../common/guards/roles.guard";
+import { Roles } from "../../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { RefreshTokenDto } from "./refresh-token.dto";
 import { clearAuthCookies, setAuthCookies } from "./cookie.util";
@@ -92,5 +95,16 @@ export class AuthController {
       throw new UnauthorizedException();
     }
     return user;
+  }
+
+  @Get("users/search")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("OWNER", "ADMIN")
+  @ApiOperation({ summary: "Admin-only: looks up users by username, to grant credits/subscriptions to" })
+  searchUsers(@Query("query") query: string): Promise<UserSummaryDto[]> {
+    if (!query || query.trim().length < 2) {
+      throw new BadRequestException("query must be at least 2 characters");
+    }
+    return this.authService.searchUsers(query.trim());
   }
 }

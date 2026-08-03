@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api-client";
 import { BotLicensePanel } from "@/components/bot-license-panel";
 import { ManualPaymentInfo } from "@/components/manual-payment-info";
 import { RoomBindingPanel } from "@/components/room-binding-panel";
+import { AdminGrantPanel } from "@/components/admin-grant-panel";
 
 export default function DashboardPage() {
   const { data: user, isLoading: userLoading } = useQuery({
@@ -42,6 +43,8 @@ export default function DashboardPage() {
       <RoomBindingPanel />
 
       <BotLicensePanel />
+
+      {(user?.roles.includes("OWNER") || user?.roles.includes("ADMIN")) && <AdminGrantPanel />}
     </main>
   );
 }

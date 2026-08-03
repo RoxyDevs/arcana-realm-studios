@@ -43,6 +43,15 @@ export interface AuthenticatedUserDto {
   roles: Role[];
 }
 
+/** Minimal user shape returned by the admin username search — for granting credits/subscriptions. */
+export interface UserSummaryDto {
+  id: string;
+  username: string;
+  discordId: string;
+  avatarUrl: string | null;
+  roles: Role[];
+}
+
 // ---------------------------------------------------------------------------
 // Billing
 // ---------------------------------------------------------------------------

@@ -1,8 +1,18 @@
 import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
-import type { AuthTokensDto } from "@arcana/types";
+import type { AuthTokensDto, UserSummaryDto } from "@arcana/types";
 import { USER_REPOSITORY, type IUserRepository } from "../domain/user-repository.interface";
 import type { DiscordProfile } from "../domain/discord-profile.entity";
 import { TokensService } from "./tokens.service";
+
+function toUserSummary(user: { id: string; username: string; discordId: string; avatarUrl: string | null; roles: string[] }): UserSummaryDto {
+  return {
+    id: user.id,
+    username: user.username,
+    discordId: user.discordId,
+    avatarUrl: user.avatarUrl,
+    roles: user.roles as UserSummaryDto["roles"],
+  };
+}
 
 @Injectable()
 export class AuthService {
@@ -39,5 +49,10 @@ export class AuthService {
 
   async logout(rawRefreshToken: string): Promise<void> {
     await this.tokens.revokeRefreshToken(rawRefreshToken);
+  }
+
+  async searchUsers(query: string): Promise<UserSummaryDto[]> {
+    const users = await this.users.searchByUsername(query, 10);
+    return users.map(toUserSummary);
   }
 }
