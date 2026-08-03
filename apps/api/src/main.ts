@@ -38,7 +38,11 @@ async function bootstrap(): Promise<void> {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup("docs", app, document);
+  // Swagger UI's "Try it out" uses its own request client, which doesn't send
+  // cookies by default even for same-origin calls — withCredentials makes it
+  // actually carry the access_token cookie so cookie-authenticated endpoints
+  // are testable from /docs without needing to paste a bearer token.
+  SwaggerModule.setup("docs", app, document, { swaggerOptions: { withCredentials: true } });
 
   const port = config.get("port", { infer: true });
   await app.listen(port);
