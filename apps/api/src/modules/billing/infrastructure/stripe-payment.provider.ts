@@ -14,7 +14,11 @@ export class StripePaymentProvider implements IPaymentProvider {
   private readonly webhookSecret: string;
 
   constructor(config: ConfigService<AppConfig, true>) {
-    this.stripe = new Stripe(config.get("stripe.secretKey", { infer: true }));
+    // A placeholder key lets the app boot when Stripe isn't configured yet —
+    // any real billing call will then fail with a normal Stripe auth error
+    // instead of crashing the whole process at startup.
+    const secretKey = config.get("stripe.secretKey", { infer: true }) || "sk_test_not_configured";
+    this.stripe = new Stripe(secretKey);
     this.webhookSecret = config.get("stripe.webhookSecret", { infer: true });
   }
 

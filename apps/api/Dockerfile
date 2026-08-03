@@ -26,6 +26,8 @@ COPY packages/types packages/types
 COPY apps/api apps/api
 
 RUN pnpm --filter @arcana/database db:generate
+RUN pnpm --filter @arcana/types build
+RUN pnpm --filter @arcana/database build
 RUN pnpm --filter @arcana/api build
 
 ENV NODE_ENV=production
