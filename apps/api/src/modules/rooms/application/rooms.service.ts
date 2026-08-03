@@ -114,4 +114,14 @@ export class RoomsService {
     }
     return toRoomDto(room, this.streamBaseUrl, await this.roomLicense.isActive(room.id));
   }
+
+  /**
+   * Unbinds a room from the owner's account — deletes it outright (cascading
+   * to its queue, licenses, Guardian settings/reports) so the IMVU room
+   * itself is freed up to be bound again, by this owner or anyone else.
+   */
+  async unbindRoom(userId: string, roomId: string): Promise<void> {
+    await this.roomAccess.assertOwner(roomId, userId);
+    await this.rooms.delete(roomId);
+  }
 }

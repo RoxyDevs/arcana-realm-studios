@@ -50,6 +50,15 @@ export function RoomBindingPanel() {
     onError: (err) => setError(err instanceof ApiError ? err.message : "Verification failed"),
   });
 
+  const unbind = useMutation({
+    mutationFn: (roomId: string) => apiFetch<void>(`/rooms/${roomId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      setError(null);
+      queryClient.invalidateQueries({ queryKey: ["rooms", "mine"] });
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.message : "Couldn't unbind that room"),
+  });
+
   return (
     <section className="mt-4 rounded-xl border border-arcana-border bg-arcana-surface/80 p-6 backdrop-blur-sm">
       <h2 className="font-display text-base font-bold uppercase tracking-wide text-arcana-purple">Bind your IMVU room</h2>
@@ -82,7 +91,21 @@ export function RoomBindingPanel() {
           <div key={room.id} className="rounded-lg border border-arcana-border bg-arcana-bg p-4">
             <div className="flex items-center justify-between gap-2">
               <span className="text-base font-semibold text-arcana-text">{room.name}</span>
-              <StatusPill room={room} />
+              <div className="flex items-center gap-2">
+                <StatusPill room={room} />
+                <button
+                  type="button"
+                  disabled={unbind.isPending}
+                  onClick={() => {
+                    if (window.confirm(`Unbind "${room.name}"? This deletes its queue and bot license history.`)) {
+                      unbind.mutate(room.id);
+                    }
+                  }}
+                  className="min-h-[36px] rounded-md border border-red-400/40 px-3 py-1 text-sm text-red-400 transition-all hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Unbind
+                </button>
+              </div>
             </div>
 
             {room.verificationStatus === "PENDING" && room.verificationToken && (

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { AuthenticatedUserDto, RoomDto } from "@arcana/types";
 import { JwtAuthGuard } from "../../auth/infrastructure/jwt-auth.guard";
@@ -40,5 +40,14 @@ export class RoomsController {
   })
   getStream(@Param("roomId") roomId: string, @CurrentUser() user: AuthenticatedUserDto): Promise<RoomDto> {
     return this.roomsService.getStreamUrl(user.id, roomId);
+  }
+
+  @Delete(":roomId")
+  @HttpCode(204)
+  @ApiOperation({
+    summary: "Unbinds a room — deletes it, freeing the IMVU room up to be bound again by anyone",
+  })
+  unbind(@Param("roomId") roomId: string, @CurrentUser() user: AuthenticatedUserDto): Promise<void> {
+    return this.roomsService.unbindRoom(user.id, roomId);
   }
 }

@@ -61,4 +61,8 @@ export class PrismaRoomRepository implements IRoomRepository {
       data: { verificationStatus: "VERIFIED", verifiedAt: new Date() },
     });
   }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.room.delete({ where: { id } });
+  }
 }

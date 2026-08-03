@@ -113,6 +113,8 @@ Rooms (binding your own IMVU room — generalized, not tied to any one example r
 4. `GET /rooms/:roomId/stream` — once `VERIFIED` and the room has an active bot license,
    returns the Icecast/HLS `streamUrl` to paste into IMVU's native **Media Controls →
    Transmisión de Radio** field (no bot avatar account required for audio).
+5. `DELETE /rooms/:roomId` — unbinds a room (deletes it, cascading to its queue and bot
+   license history), freeing the IMVU room to be bound again by anyone.
 
 `IRoomOwnershipVerifier` is backed by `ImvuRoomApiVerifier`
 (`apps/api/src/modules/rooms/infrastructure/imvu-room-api.verifier.ts`), which calls

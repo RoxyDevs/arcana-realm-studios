@@ -21,4 +21,5 @@ export interface IRoomRepository {
   }): Promise<Room>;
 
   markVerified(id: string): Promise<Room>;
+  delete(id: string): Promise<void>;
 }
