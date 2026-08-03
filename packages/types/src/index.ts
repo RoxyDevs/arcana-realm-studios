@@ -114,6 +114,31 @@ export interface BotLicenseStatusDto {
 }
 
 // ---------------------------------------------------------------------------
+// Rooms — binding a user's IMVU room to Arcana (ownership verified via a
+// token placed in the room's description, mirroring Vusic's flow).
+// ---------------------------------------------------------------------------
+
+export const RoomVerificationStatusSchema = z.enum(["PENDING", "VERIFIED"]);
+export type RoomVerificationStatus = z.infer<typeof RoomVerificationStatusSchema>;
+
+export interface RoomDto {
+  id: string;
+  imvuRoomId: string;
+  name: string;
+  verificationStatus: RoomVerificationStatus;
+  verifiedAt: string | null;
+  /** Only present while PENDING — paste this into the room's IMVU description. */
+  verificationToken: string | null;
+  /** Only present once VERIFIED and the room has an active bot license. */
+  streamUrl: string | null;
+}
+
+export const BindRoomSchema = z.object({
+  roomUrlOrId: z.string().min(1),
+});
+export type BindRoomDto = z.infer<typeof BindRoomSchema>;
+
+// ---------------------------------------------------------------------------
 // Arcana Music
 // ---------------------------------------------------------------------------
 

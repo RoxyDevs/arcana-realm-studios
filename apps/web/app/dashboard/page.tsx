@@ -5,6 +5,7 @@ import type { AuthenticatedUserDto, WalletBalanceDto } from "@arcana/types";
 import { apiFetch } from "@/lib/api-client";
 import { BotLicensePanel } from "@/components/bot-license-panel";
 import { ManualPaymentInfo } from "@/components/manual-payment-info";
+import { RoomBindingPanel } from "@/components/room-binding-panel";
 
 export default function DashboardPage() {
   const { data: user, isLoading: userLoading } = useQuery({
@@ -37,6 +38,8 @@ export default function DashboardPage() {
       </section>
 
       <ManualPaymentInfo />
+
+      <RoomBindingPanel />
 
       <BotLicensePanel />
     </main>

@@ -8,6 +8,7 @@ import { SharedProvidersModule } from "./common/shared-providers.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { BillingModule } from "./modules/billing/billing.module";
 import { MusicModule } from "./modules/music/music.module";
+import { RoomsModule } from "./modules/rooms/rooms.module";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { MusicModule } from "./modules/music/music.module";
     AuthModule,
     BillingModule,
     MusicModule,
+    RoomsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

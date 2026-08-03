@@ -81,15 +81,30 @@ model AuditLog {
 // Rooms — a Room is a community space owned/hosted by a User.
 // `imvuRoomId` is an opaque external reference supplied by the (adapter-isolated)
 // IMVU integration; Arcana never assumes a documented IMVU room API exists.
+//
+// Ownership is proven the same way Vusic's "VALIDAR SALA" flow does it: we
+// generate a one-time `verificationToken`, the owner pastes it into their
+// room's IMVU description, and an adapter-isolated checker confirms it's
+// there before the room moves from PENDING to VERIFIED. Every Room a user
+// binds goes through this same flow — nothing here is hardcoded to one room.
 // ---------------------------------------------------------------------------
 
+enum RoomVerificationStatus {
+  PENDING
+  VERIFIED
+}
+
 model Room {
-  id          String   @id @default(cuid())
-  ownerId     String
-  imvuRoomId  String?  @unique
-  name        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String                 @id @default(cuid())
+  ownerId            String
+  imvuRoomId         String                 @unique
+  name               String
+  verificationToken  String                 @unique
+  verificationStatus RoomVerificationStatus @default(PENDING)
+  verifiedAt         DateTime?
+  streamKey          String                 @unique
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
 
   owner            User              @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   musicQueue       MusicQueueItem[]

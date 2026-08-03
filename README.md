@@ -39,6 +39,7 @@ Modules implemented so far:
 | **Auth** | ✅ | Discord OAuth, JWT access + rotating opaque refresh tokens, RBAC (`@Roles`) |
 | **Billing** | ✅ | Credit wallet, Stripe Checkout (one-time credits + Plus/Premium subscriptions), webhook handling, time-boxed bot licenses (1 day/week/month/3 months/year), audited manual wallet adjustments |
 | **Music** | ✅ | Per-room queue, Spotify/YouTube track resolution, AutoDJ `playNext` hook |
+| **Rooms** | ✅ | Bind any IMVU room by URL/ID, verify ownership via a token placed in the room's description, get back the room's Icecast/HLS stream URL once verified + bot-licensed |
 | Guardian | 🔜 | Schema in place (`GuardianReport`, `ReputationScore`, `GuardianSettings`) — service layer not yet built |
 | Intelligence | 🔜 | `Room` model in place — analytics/heatmaps not yet built |
 | Studio | 🔜 | Not started |
@@ -49,7 +50,9 @@ PostgreSQL via Prisma (`packages/database/prisma/schema.prisma`). Key models:
 
 - **Identity**: `User`, `RefreshToken`, `AuditLog`
 - **Rooms**: `Room` (owned by a `User`; `imvuRoomId` is an opaque external reference —
-  no IMVU API is assumed to exist)
+  no IMVU API is assumed to exist). `verificationToken`/`verificationStatus`/`verifiedAt`
+  track the ownership-proof flow; `streamKey` is the private component of the room's
+  Icecast/HLS stream URL, only ever exposed once `VERIFIED`
 - **Billing**: `Wallet`, `Transaction`, `Subscription`
 - **Music**: `Track`, `Playlist`, `PlaylistTrack`, `MusicQueueItem`
 - **Guardian**: `GuardianSettings`, `GuardianReport`, `ReputationScore` — scoped to
@@ -89,6 +92,25 @@ Bot Licenses: `GET /rooms/:roomId/license` (status), `POST /rooms/:roomId/licens
 only — manual grant for a PayPal.me/VCoin payment). `POST /billing/wallet/adjust`
 (`OWNER`/`ADMIN` only) credits/debits any user's wallet directly for the same
 out-of-band-payment reason, and always writes an `AuditLog` row.
+
+Rooms (binding your own IMVU room — generalized, not tied to any one example room):
+
+1. `GET /rooms/mine` — lists the current user's rooms (pending or verified).
+2. `POST /rooms/bind` — body `{ roomUrlOrId }`. Parses the `<clientId>-<roomId>` slug out
+   of a pasted room URL (or accepts the bare slug), and issues a one-time
+   `verificationToken` for the caller to paste into that room's IMVU description.
+3. `POST /rooms/:roomId/verify` — checks whether the token actually made it into the
+   room's description via `IRoomOwnershipVerifier`, and flips the room to `VERIFIED` if so.
+4. `GET /rooms/:roomId/stream` — once `VERIFIED` and the room has an active bot license,
+   returns the Icecast/HLS `streamUrl` to paste into IMVU's native **Media Controls →
+   Transmisión de Radio** field (no bot avatar account required for audio).
+
+`IRoomOwnershipVerifier` is intentionally unconfigured out of the box
+(`apps/api/src/modules/rooms/infrastructure/imvu-room-page.verifier.ts`): IMVU has no
+documented endpoint for reading a room's public description over HTTP, so rather than
+fabricate one, the verifier fails loudly until `IMVU_ROOM_PAGE_URL_TEMPLATE` is set to a
+confirmed real request (e.g. captured from a browser's Network tab while triggering
+Vusic's own "VALIDAR SALA" check).
 
 ## 4. Frontend
 

@@ -20,6 +20,18 @@ export interface AppConfig {
   };
   /** Discord IDs that get the OWNER role the moment their account is first created — solves the bootstrap problem of nobody having admin rights yet. */
   bootstrapOwnerDiscordIds: string[];
+  imvu: {
+    /**
+     * Not a documented IMVU endpoint — see IRoomOwnershipVerifier. Left unset
+     * until the real request behind Vusic's "VALIDAR SALA" check is captured
+     * and confirmed. `{roomId}` is substituted with the parsed room slug.
+     */
+    roomPageUrlTemplate: string | null;
+  };
+  streaming: {
+    /** Base URL of the Icecast/HLS server rooms broadcast from once verified + licensed. */
+    baseUrl: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -47,4 +59,10 @@ export default (): AppConfig => ({
     .split(",")
     .map((id) => id.trim())
     .filter(Boolean),
+  imvu: {
+    roomPageUrlTemplate: process.env.IMVU_ROOM_PAGE_URL_TEMPLATE || null,
+  },
+  streaming: {
+    baseUrl: process.env.STREAMING_BASE_URL ?? "https://stream.arcanarealmstudios.com",
+  },
 });

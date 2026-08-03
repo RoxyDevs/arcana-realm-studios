@@ -29,6 +29,7 @@ export default {
           "0 0 4px rgba(255,43,214,0.8), 0 0 16px rgba(255,43,214,0.45), 0 0 40px rgba(255,43,214,0.2)",
         "neon-cyan-sm": "0 0 12px rgba(0,255,242,0.35)",
         "neon-pink-sm": "0 0 12px rgba(255,43,214,0.35)",
+        "neon-purple-sm": "0 0 12px rgba(176,38,255,0.35)",
       },
       textShadow: {
         "neon-cyan": "0 0 8px rgba(0,255,242,0.9), 0 0 24px rgba(0,255,242,0.5)",
