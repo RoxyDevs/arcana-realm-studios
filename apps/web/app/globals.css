@@ -19,6 +19,43 @@ body {
   background-size: 48px 48px, 48px 48px, 100% 100%;
 }
 
+/* Holographic gradient text — cyan/pink/purple sheen, the "future Japan
+   hologram" accent used on primary headings site-wide. */
+.text-holo {
+  background: linear-gradient(100deg, #00fff2, #ff2bd6 45%, #b026ff 70%, #00fff2);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Holographic animated-gradient border, for panels that want to stand out
+   (landing hero, primary CTAs) without every panel competing for attention. */
+.holo-border {
+  position: relative;
+  border-color: transparent;
+  background:
+    linear-gradient(#0d0d18, #0d0d18) padding-box,
+    linear-gradient(115deg, #00fff2, #ff2bd6, #b026ff, #00fff2) border-box;
+  background-size: 100% 100%, 300% 100%;
+}
+
+/* Faint decorative kanji watermark ("near-future") for the landing hero —
+   subtle, non-interactive, purely atmospheric. */
+.jp-watermark {
+  pointer-events: none;
+  user-select: none;
+  font-family: var(--font-display);
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(0, 255, 242, 0.18);
+}
+
+@keyframes holo-shift {
+  to {
+    background-position: 300% center, 300% center;
+  }
+}
+
 .arcana-scanline {
   top: -6rem;
   background: linear-gradient(
@@ -82,5 +119,10 @@ body {
 
   .animate-neon-pulse {
     animation: neon-pulse 2.6s ease-in-out infinite;
+  }
+
+  .text-holo,
+  .holo-border {
+    animation: holo-shift 6s linear infinite;
   }
 }

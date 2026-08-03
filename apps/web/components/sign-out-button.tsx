@@ -16,7 +16,7 @@ export function SignOutButton() {
       type="button"
       disabled={signOut.isPending}
       onClick={() => signOut.mutate()}
-      className="rounded-md border border-arcana-border px-3 py-1.5 text-xs text-arcana-textMuted transition-all hover:border-arcana-pink/60 hover:text-arcana-pink disabled:cursor-not-allowed disabled:opacity-50"
+      className="min-h-[44px] rounded-md border border-arcana-border px-4 py-2 text-sm text-arcana-textMuted transition-all hover:border-arcana-pink/60 hover:text-arcana-pink disabled:cursor-not-allowed disabled:opacity-50"
     >
       Sign out
     </button>

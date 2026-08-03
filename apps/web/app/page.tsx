@@ -11,13 +11,20 @@ const MODULES = [
 
 export default function HomePage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center gap-12 px-6 py-24 text-center">
+    <main className="relative mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center gap-12 overflow-hidden px-6 py-24 text-center">
+      <span
+        aria-hidden
+        className="jp-watermark absolute -top-8 right-0 select-none text-[clamp(6rem,22vw,14rem)] font-black leading-none sm:right-8"
+      >
+        近未来
+      </span>
+
       <SpotlightContainer>
-        <div className="space-y-4 p-4">
-          <h1 className="text-shadow-neon-cyan text-4xl font-bold tracking-tight text-arcana-text sm:text-6xl">
+        <div className="space-y-5 p-4">
+          <h1 className="text-holo font-display text-[clamp(2.5rem,8vw,5rem)] font-black leading-[1.05] tracking-tight">
             <GlitchText text="Arcana Realm Studios" />
           </h1>
-          <p className="text-lg text-arcana-textMuted">
+          <p className="mx-auto max-w-2xl text-lg text-arcana-textMuted sm:text-xl">
             The operating system for IMVU room owners, DJs, creators, and moderators.
           </p>
         </div>
@@ -25,7 +32,7 @@ export default function HomePage() {
 
       <Link
         href="/login"
-        className="animate-neon-pulse rounded-lg border border-arcana-cyan/60 bg-arcana-cyan/10 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-arcana-cyan shadow-neon-cyan-sm transition-all hover:bg-arcana-cyan/20 hover:shadow-neon-cyan"
+        className="animate-neon-pulse rounded-lg border border-arcana-cyan/60 bg-arcana-cyan/10 px-8 py-4 text-base font-semibold uppercase tracking-wide text-arcana-cyan shadow-neon-cyan-sm transition-all hover:bg-arcana-cyan/20 hover:shadow-neon-cyan"
       >
         Sign in with Discord
       </Link>
@@ -52,13 +59,13 @@ export default function HomePage() {
             />
             <h2
               className={
-                "text-base font-semibold " +
+                "font-display text-lg font-bold tracking-wide " +
                 (module.accent === "cyan" ? "text-arcana-cyan" : "text-arcana-pink")
               }
             >
               {module.name}
             </h2>
-            <p className="mt-1 text-sm text-arcana-textMuted">{module.description}</p>
+            <p className="mt-1.5 text-base text-arcana-textMuted">{module.description}</p>
           </div>
         ))}
       </div>

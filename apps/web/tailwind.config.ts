@@ -21,6 +21,7 @@ export default {
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
       },
       boxShadow: {
         "neon-cyan":
@@ -30,6 +31,7 @@ export default {
         "neon-cyan-sm": "0 0 12px rgba(0,255,242,0.35)",
         "neon-pink-sm": "0 0 12px rgba(255,43,214,0.35)",
         "neon-purple-sm": "0 0 12px rgba(176,38,255,0.35)",
+        holo: "0 0 20px rgba(0,255,242,0.25), 0 0 40px rgba(255,43,214,0.15), 0 0 60px rgba(176,38,255,0.15)",
       },
       textShadow: {
         "neon-cyan": "0 0 8px rgba(0,255,242,0.9), 0 0 24px rgba(0,255,242,0.5)",

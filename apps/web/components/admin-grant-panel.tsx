@@ -35,26 +35,26 @@ export function AdminGrantPanel() {
 
   return (
     <section className="mt-4 rounded-xl border border-arcana-purple/40 bg-arcana-surface/80 p-6 backdrop-blur-sm">
-      <h2 className="text-sm font-medium uppercase tracking-wide text-arcana-purple">Admin: grant credits</h2>
+      <h2 className="font-display text-base font-bold uppercase tracking-wide text-arcana-purple">Admin: grant credits</h2>
 
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search username…"
-          className="flex-1 rounded-md border border-arcana-border bg-arcana-bg px-3 py-2 text-sm text-arcana-text placeholder:text-arcana-textMuted focus:border-arcana-purple/70 focus:outline-none"
+          className="min-h-[48px] flex-1 rounded-md border border-arcana-border bg-arcana-bg px-3 py-3 text-base text-arcana-text placeholder:text-arcana-textMuted focus:border-arcana-purple/70 focus:outline-none"
         />
         <input
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="Credits"
-          className="w-32 rounded-md border border-arcana-border bg-arcana-bg px-3 py-2 text-sm text-arcana-text focus:border-arcana-purple/70 focus:outline-none"
+          className="min-h-[48px] rounded-md border border-arcana-border bg-arcana-bg px-3 py-3 text-base text-arcana-text focus:border-arcana-purple/70 focus:outline-none sm:w-32"
         />
         <input
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder="Reason"
-          className="w-40 rounded-md border border-arcana-border bg-arcana-bg px-3 py-2 text-sm text-arcana-text focus:border-arcana-purple/70 focus:outline-none"
+          className="min-h-[48px] rounded-md border border-arcana-border bg-arcana-bg px-3 py-3 text-base text-arcana-text focus:border-arcana-purple/70 focus:outline-none sm:w-40"
         />
       </div>
 
@@ -62,29 +62,29 @@ export function AdminGrantPanel() {
         {results?.map((u) => (
           <div
             key={u.id}
-            className="flex items-center justify-between rounded-lg border border-arcana-border bg-arcana-bg p-3"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-arcana-border bg-arcana-bg p-3"
           >
-            <div className="text-sm text-arcana-text">
+            <div className="text-base text-arcana-text">
               {u.username} <span className="text-arcana-textMuted">({u.roles.join(", ")})</span>
             </div>
             <button
               type="button"
               disabled={grant.isPending}
               onClick={() => grant.mutate(u.id)}
-              className="rounded-md border border-arcana-purple/60 px-3 py-1.5 text-xs text-arcana-text transition-all hover:shadow-neon-purple-sm disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-[44px] rounded-md border border-arcana-purple/60 px-4 py-2 text-sm font-medium text-arcana-text transition-all hover:shadow-neon-purple-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               Grant {amount} credits
             </button>
           </div>
         ))}
         {query.trim().length >= 2 && results?.length === 0 && (
-          <p className="text-sm text-arcana-textMuted">
+          <p className="text-base text-arcana-textMuted">
             No user found — make sure they&apos;ve logged into the dashboard at least once.
           </p>
         )}
       </div>
 
-      {message && <p className="mt-3 text-sm text-arcana-cyan">{message}</p>}
+      {message && <p className="mt-3 text-base text-arcana-cyan">{message}</p>}
     </section>
   );
 }
