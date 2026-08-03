@@ -54,7 +54,9 @@ PostgreSQL via Prisma (`packages/database/prisma/schema.prisma`). Key models:
   track the ownership-proof flow; `streamKey` is the private component of the room's
   Icecast/HLS stream URL, only ever exposed once `VERIFIED`
 - **Billing**: `Wallet`, `Transaction`, `Subscription`
-- **Music**: `Track`, `Playlist`, `PlaylistTrack`, `MusicQueueItem`
+- **Music**: `Track` (`storageKey`/`fileUrl`/`genreTags` set only for `source: UPLOAD` — the
+  room's own audio in Cloudflare R2, never a copy of a Spotify/YouTube stream), `Playlist`,
+  `PlaylistTrack`, `MusicQueueItem`
 - **Guardian**: `GuardianSettings`, `GuardianReport`, `ReputationScore` — scoped to
   incidents inside a room the reporter hosts/moderates, never third-party tracking
 - **Bot Licenses**: `BotLicense` — time-boxed bot access per `Room` (`DAY_1`, `WEEK_1`,
