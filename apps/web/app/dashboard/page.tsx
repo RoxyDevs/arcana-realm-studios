@@ -7,6 +7,7 @@ import { BotLicensePanel } from "@/components/bot-license-panel";
 import { ManualPaymentInfo } from "@/components/manual-payment-info";
 import { RoomBindingPanel } from "@/components/room-binding-panel";
 import { AdminGrantPanel } from "@/components/admin-grant-panel";
+import { SignOutButton } from "@/components/sign-out-button";
 
 export default function DashboardPage() {
   const { data: user, isLoading: userLoading } = useQuery({
@@ -22,7 +23,10 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="text-shadow-neon-cyan text-2xl font-bold text-arcana-text">Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-shadow-neon-cyan text-2xl font-bold text-arcana-text">Dashboard</h1>
+        {user && <SignOutButton />}
+      </div>
 
       <section className="mt-8 rounded-xl border border-arcana-border bg-arcana-surface/80 p-6 backdrop-blur-sm">
         <h2 className="text-sm font-medium uppercase tracking-wide text-arcana-cyan">Signed in as</h2>
