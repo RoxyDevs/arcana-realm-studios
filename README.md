@@ -105,12 +105,16 @@ Rooms (binding your own IMVU room — generalized, not tied to any one example r
    returns the Icecast/HLS `streamUrl` to paste into IMVU's native **Media Controls →
    Transmisión de Radio** field (no bot avatar account required for audio).
 
-`IRoomOwnershipVerifier` is intentionally unconfigured out of the box
-(`apps/api/src/modules/rooms/infrastructure/imvu-room-page.verifier.ts`): IMVU has no
-documented endpoint for reading a room's public description over HTTP, so rather than
-fabricate one, the verifier fails loudly until `IMVU_ROOM_PAGE_URL_TEMPLATE` is set to a
-confirmed real request (e.g. captured from a browser's Network tab while triggering
-Vusic's own "VALIDAR SALA" check).
+`IRoomOwnershipVerifier` is backed by `ImvuRoomApiVerifier`
+(`apps/api/src/modules/rooms/infrastructure/imvu-room-api.verifier.ts`), which calls
+`https://api.imvu.com/room/room-<clientId>-<roomId>` — not an officially documented IMVU
+endpoint, but confirmed (via a cold, cookie-less request in an incognito window) to be
+public: it returns the room's `data.description` with no authentication required. This is
+the same resource-graph endpoint IMVU's own "Next" web client (a WASM app, codename
+"northstar") fetches to render a room page. Since it's undocumented, IMVU could change or
+restrict it at any time — that risk is exactly why it's isolated behind
+`IRoomOwnershipVerifier` and overridable via `IMVU_ROOM_PAGE_URL_TEMPLATE` rather than
+hardcoded anywhere else.
 
 ## 4. Frontend
 

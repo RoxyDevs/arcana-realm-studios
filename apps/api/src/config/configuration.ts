@@ -22,9 +22,10 @@ export interface AppConfig {
   bootstrapOwnerDiscordIds: string[];
   imvu: {
     /**
-     * Not a documented IMVU endpoint — see IRoomOwnershipVerifier. Left unset
-     * until the real request behind Vusic's "VALIDAR SALA" check is captured
-     * and confirmed. `{roomId}` is substituted with the parsed room slug.
+     * Not an officially documented IMVU endpoint, but confirmed working and
+     * public (no auth) — see ImvuRoomApiVerifier. Override only if IMVU
+     * changes this shape; `{roomId}` is substituted with the parsed
+     * `<clientId>-<roomId>` room slug.
      */
     roomPageUrlTemplate: string | null;
   };
