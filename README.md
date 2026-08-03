@@ -12,8 +12,9 @@ Turborepo monorepo, pnpm workspaces:
 
 ```
 apps/
-  api/    NestJS backend — Feature-First + Clean Architecture
-  web/    Next.js 15 dashboard (dark cyberpunk UI)
+  api/         NestJS backend — Feature-First + Clean Architecture
+  web/         Next.js 15 dashboard (dark cyberpunk UI)
+  streaming/   Icecast + Liquidsoap AutoDJ engine (see apps/streaming/README.md)
 packages/
   database/   Prisma schema + shared client singleton (@arcana/database)
   types/      Shared DTOs & zod schemas consumed by both apps (@arcana/types)
@@ -40,6 +41,7 @@ Modules implemented so far:
 | **Billing** | ✅ | Credit wallet, Stripe Checkout (one-time credits + Plus/Premium subscriptions), webhook handling, time-boxed bot licenses (1 day/week/month/3 months/year), audited manual wallet adjustments |
 | **Music** | ✅ | Per-room queue, Spotify/YouTube track resolution, AutoDJ `playNext` hook |
 | **Rooms** | ✅ | Bind any IMVU room by URL/ID, verify ownership via a token placed in the room's description, get back the room's Icecast/HLS stream URL once verified + bot-licensed |
+| **Streaming** | 🔜 built, untested | `apps/streaming/` — Icecast + Liquidsoap AutoDJ broadcasting each room's upload queue as MP3, polling `apps/api`'s `/internal/streaming/*` for what's active/next. Built and reasoned through against IMVU's documented radio-streaming requirements, but not run — no Docker daemon in the dev sandbox this was built in |
 | Guardian | 🔜 | Schema in place (`GuardianReport`, `ReputationScore`, `GuardianSettings`) — service layer not yet built |
 | Intelligence | 🔜 | `Room` model in place — analytics/heatmaps not yet built |
 | Studio | 🔜 | Not started |
@@ -126,6 +128,13 @@ the same resource-graph endpoint IMVU's own "Next" web client (a WASM app, coden
 restrict it at any time — that risk is exactly why it's isolated behind
 `IRoomOwnershipVerifier` and overridable via `IMVU_ROOM_PAGE_URL_TEMPLATE` rather than
 hardcoded anywhere else.
+
+Music (tracks): `POST /rooms/:roomId/tracks/upload` (multipart) — uploads a room owner's
+own audio to Cloudflare R2 for AutoDJ to stream; never a copy of a Spotify/YouTube
+source. Internal-only, not part of the public API surface: `GET
+/internal/streaming/active-rooms` and `GET /internal/streaming/rooms/:roomId/next-track`
+— polled by `apps/streaming`'s Liquidsoap process, authenticated via a shared
+`STREAMING_INTERNAL_TOKEN` header instead of a user JWT (see `InternalTokenGuard`).
 
 ## 4. Frontend
 

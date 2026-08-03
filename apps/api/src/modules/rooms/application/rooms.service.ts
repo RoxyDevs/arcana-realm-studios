@@ -21,7 +21,14 @@ function toRoomDto(room: Room, streamBaseUrl: string, licenseActive: boolean): R
     verificationStatus: room.verificationStatus,
     verifiedAt: room.verifiedAt ? room.verifiedAt.toISOString() : null,
     verificationToken: room.verificationStatus === "PENDING" ? room.verificationToken : null,
-    streamUrl: room.verificationStatus === "VERIFIED" && licenseActive ? `${streamBaseUrl}/live/${room.streamKey}` : null,
+    // IMVU's radio player requires the URL to point straight at raw MP3
+    // bytes (no .pls/.m3u/.m3u8 playlist wrapper) and expects a ".mp3"
+    // extension to recognize the format — matches Icecast mountpoint
+    // convention (see support.imvu.com "Radio Streaming").
+    streamUrl:
+      room.verificationStatus === "VERIFIED" && licenseActive
+        ? `${streamBaseUrl}/live/${room.streamKey}.mp3`
+        : null,
   };
 }
 

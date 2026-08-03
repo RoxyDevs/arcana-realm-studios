@@ -9,6 +9,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { BillingModule } from "./modules/billing/billing.module";
 import { MusicModule } from "./modules/music/music.module";
 import { RoomsModule } from "./modules/rooms/rooms.module";
+import { StreamingInternalModule } from "./modules/streaming-internal/streaming-internal.module";
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { RoomsModule } from "./modules/rooms/rooms.module";
     BillingModule,
     MusicModule,
     RoomsModule,
+    StreamingInternalModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

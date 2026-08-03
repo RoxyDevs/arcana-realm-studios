@@ -32,6 +32,13 @@ export interface AppConfig {
   streaming: {
     /** Base URL of the Icecast/HLS server rooms broadcast from once verified + licensed. */
     baseUrl: string;
+    /**
+     * Shared secret the Icecast/Liquidsoap service authenticates with when
+     * polling `/internal/streaming/*` — this isn't a logged-in user, so JWT
+     * cookies don't apply. Empty = the internal API stays locked (fails
+     * loudly, per the object-storage/IMVU-verifier pattern elsewhere).
+     */
+    internalToken: string;
   };
   objectStorage: {
     /** Cloudflare R2 — S3-compatible. Empty until configured; upload endpoints fail loudly rather than silently no-op. */
@@ -74,6 +81,7 @@ export default (): AppConfig => ({
   },
   streaming: {
     baseUrl: process.env.STREAMING_BASE_URL ?? "https://stream.arcanarealmstudios.com",
+    internalToken: process.env.STREAMING_INTERNAL_TOKEN ?? "",
   },
   objectStorage: {
     accountId: process.env.R2_ACCOUNT_ID ?? "",
