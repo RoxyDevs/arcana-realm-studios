@@ -68,12 +68,29 @@ here) and the matching `STREAMING_INTERNAL_TOKEN`.
 4. On the API service, set `STREAMING_BASE_URL` to this service's public
    URL and `STREAMING_INTERNAL_TOKEN` to the same secret.
 
-## Known gap — this needs live testing
+## Verified locally
 
-This was built and reasoned through against Debian's packaged Icecast2/
-Liquidsoap documentation, but **not run** — there's no Docker daemon
-available in the environment this was developed in, so the exact Liquidsoap
-script syntax (`request.dynamic`, `fallback`, `mksafe`) hasn't been verified
-against a real Liquidsoap version. Expect to watch Railway's deploy/runtime
-logs closely on first deploy and iterate on `generate-liquidsoap.sh`'s
-generated `.liq` syntax if Liquidsoap rejects it.
+There's no Docker daemon in the environment this was developed in, so the
+Dockerfile image itself has never been built — but the actual `icecast2` and
+`liquidsoap` packages (matching Debian bookworm's versions) were installed
+directly and the real, unmodified scripts were run end-to-end: Icecast
+started from `icecast.xml.template`, a real `generate-liquidsoap.sh` output
+loaded into a real Liquidsoap process, a real track fetched over HTTP via
+the real `next-track.sh`, and a listener `curl` confirmed genuine
+LAME-encoded MP3 bytes coming off the `/live/<streamKey>.mp3` mount. This
+caught two real bugs that a Docker-only "does it build" check would have
+missed, since both only surface once the container actually tries to run
+as root (which it does — no `USER` directive):
+
+- **Icecast refuses to start as root** without an explicit privilege drop.
+  Fixed by adding `<changeowner><user>icecast2</user><group>icecast</group></changeowner>`
+  to `icecast.xml.template` (the Debian package's own `icecast2` system user).
+- **Liquidsoap 2.2.x hard-exits on root** ("security exit... Override with
+  `settings.init.allow_root := true`") — but only at actual stream startup,
+  not during `--check`, which is why a syntax-only check wouldn't have
+  caught it. Fixed by emitting `settings.init.allow_root := true` at the top
+  of every generated `.liq` script in `generate-liquidsoap.sh`.
+
+What's still unverified is the Dockerfile build itself and Railway's
+specific networking (public domain → container port 8000) — those need a
+real deploy, but the audio pipeline underneath them is now proven correct.

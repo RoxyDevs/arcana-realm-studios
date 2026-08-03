@@ -45,5 +45,14 @@
 
     <security>
         <chroot>0</chroot>
+        <!-- The container runs as root (no USER directive — Liquidsoap's own
+             restart cycle in entrypoint.sh needs to manage both processes),
+             and Icecast refuses to start as root unless told who to drop
+             privileges to. icecast2/icecast are the system user+group the
+             Debian package creates and owns /var/log/icecast2 as. -->
+        <changeowner>
+            <user>icecast2</user>
+            <group>icecast</group>
+        </changeowner>
     </security>
 </icecast>
