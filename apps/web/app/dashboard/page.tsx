@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api-client";
 import { BotLicensePanel } from "@/components/bot-license-panel";
 import { ManualPaymentInfo } from "@/components/manual-payment-info";
 import { RoomBindingPanel } from "@/components/room-binding-panel";
+import { TrackUploadPanel } from "@/components/track-upload-panel";
 import { AdminGrantPanel } from "@/components/admin-grant-panel";
 import { SignOutButton } from "@/components/sign-out-button";
 
@@ -49,6 +50,8 @@ export default function DashboardPage() {
       <RoomBindingPanel />
 
       <BotLicensePanel />
+
+      <TrackUploadPanel />
 
       {(user?.roles.includes("OWNER") || user?.roles.includes("ADMIN")) && <AdminGrantPanel />}
     </main>

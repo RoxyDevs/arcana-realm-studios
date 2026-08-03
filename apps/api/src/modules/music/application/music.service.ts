@@ -132,6 +132,10 @@ export class MusicService {
     };
 
     const track = await this.tracks.createUpload(record);
+    // AutoDJ's next-track lookup only ever looks at queue history for a room
+    // (see StreamingInternalService.nextTrackUrl) — a Track row that was
+    // never queued would sit in the library forever and never actually play.
+    await this.queue.enqueue({ roomId, trackId: track.id, requestedById: userId });
     return toTrackDto(track);
   }
 }
