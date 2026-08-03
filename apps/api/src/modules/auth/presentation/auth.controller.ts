@@ -83,7 +83,7 @@ export class AuthController {
     if (rawToken) {
       await this.authService.logout(rawToken);
     }
-    clearAuthCookies(res);
+    clearAuthCookies(res, this.isProduction);
     return { ok: true };
   }
 
