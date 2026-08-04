@@ -30,12 +30,20 @@ export default function HomePage() {
         </div>
       </SpotlightContainer>
 
-      <Link
-        href="/login"
-        className="animate-neon-pulse rounded-lg border border-arcana-cyan/60 bg-arcana-cyan/10 px-8 py-4 text-base font-semibold uppercase tracking-wide text-arcana-cyan shadow-neon-cyan-sm transition-all hover:bg-arcana-cyan/20 hover:shadow-neon-cyan"
-      >
-        Sign in with Discord
-      </Link>
+      <div className="flex flex-wrap items-center justify-center gap-4">
+        <Link
+          href="/login"
+          className="animate-neon-pulse rounded-lg border border-arcana-cyan/60 bg-arcana-cyan/10 px-8 py-4 text-base font-semibold uppercase tracking-wide text-arcana-cyan shadow-neon-cyan-sm transition-all hover:bg-arcana-cyan/20 hover:shadow-neon-cyan"
+        >
+          Sign in with Discord
+        </Link>
+        <Link
+          href="/pricing"
+          className="rounded-lg border border-arcana-border px-8 py-4 text-base font-semibold uppercase tracking-wide text-arcana-text transition-all hover:border-arcana-pink/60"
+        >
+          Pricing
+        </Link>
+      </div>
 
       <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
         {MODULES.map((module) => (

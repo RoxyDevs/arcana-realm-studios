@@ -32,6 +32,19 @@ export class BillingService {
     return { creditBalance: wallet.creditBalance, updatedAt: wallet.updatedAt.toISOString() };
   }
 
+  /** No active subscription just means FREE — not an error, unlike a missing wallet. */
+  async getMySubscription(userId: string): Promise<SubscriptionStatusDto> {
+    const active = await this.subscriptions.findActiveByUserId(userId);
+    if (!active) {
+      return { tier: "FREE", status: "ACTIVE", currentPeriodEnd: null };
+    }
+    return {
+      tier: active.tier,
+      status: active.status,
+      currentPeriodEnd: active.currentPeriodEnd?.toISOString() ?? null,
+    };
+  }
+
   /**
    * Credits (or debits) a user's wallet for a payment Arcana couldn't verify
    * automatically — PayPal.me, an in-game VCoin gift, etc. Every call is

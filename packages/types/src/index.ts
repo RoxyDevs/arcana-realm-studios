@@ -88,6 +88,38 @@ export const AdjustWalletSchema = z.object({
 });
 export type AdjustWalletDto = z.infer<typeof AdjustWalletSchema>;
 
+/**
+ * Paid subscription tiers — a recurring perk bundle on top of the credit
+ * wallet, not a replacement for it. Bot time itself stays pay-as-you-go
+ * with credits at every tier (including FREE); PLUS/PREMIUM just make that
+ * credit spend go further. priceUsd is informational display copy — the
+ * actual charge amount lives in the Stripe Price object each tier's
+ * STRIPE_PRICE_*_MONTHLY env var points to, so this number and Stripe's
+ * price must be kept in sync by hand.
+ */
+export interface SubscriptionPlanDefinition {
+  label: string;
+  priceUsd: number;
+  /** Percent off every credit-funded bot-license purchase (single or bulk), applied on top of BULK_LICENSE_DISCOUNT. */
+  creditDiscountPercent: number;
+  perks: string[];
+}
+
+export const SUBSCRIPTION_PLANS: Record<"PLUS" | "PREMIUM", SubscriptionPlanDefinition> = {
+  PLUS: {
+    label: "Plus",
+    priceUsd: 6.99,
+    creditDiscountPercent: 10,
+    perks: ["10% off all bot-time purchases", "Priority support"],
+  },
+  PREMIUM: {
+    label: "Premium",
+    priceUsd: 14.99,
+    creditDiscountPercent: 20,
+    perks: ["20% off all bot-time purchases", "Priority support", "Early access to new modules"],
+  },
+};
+
 // ---------------------------------------------------------------------------
 // Bot Licenses — time-boxed bot access per room ("1 day" ... "1 year" plans).
 // Prices are credits, defined once here so the pricing table on the web app
