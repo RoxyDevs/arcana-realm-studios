@@ -46,6 +46,14 @@ export interface AppConfig {
      * LIQUIDSOAP_HARBOR_PORT.
      */
     harborPort: number;
+    /**
+     * Port the streaming service's browser-mic bridge listens on (see
+     * apps/streaming/mic-bridge) — a WebSocket relay that transcodes a
+     * browser's MediaRecorder audio into an Icecast source push against the
+     * harbor above, since a browser can't speak the Icecast source protocol
+     * directly. Must match that service's MIC_BRIDGE_PORT.
+     */
+    micBridgePort: number;
   };
   objectStorage: {
     /** Cloudflare R2 — S3-compatible. Empty until configured; upload endpoints fail loudly rather than silently no-op. */
@@ -90,6 +98,7 @@ export default (): AppConfig => ({
     baseUrl: process.env.STREAMING_BASE_URL ?? "https://stream.arcanarealmstudios.com",
     internalToken: process.env.STREAMING_INTERNAL_TOKEN ?? "",
     harborPort: parseInt(process.env.STREAMING_HARBOR_PORT ?? "8006", 10),
+    micBridgePort: parseInt(process.env.STREAMING_MIC_BRIDGE_PORT ?? "8007", 10),
   },
   objectStorage: {
     accountId: process.env.R2_ACCOUNT_ID ?? "",

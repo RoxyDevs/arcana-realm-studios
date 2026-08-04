@@ -1,0 +1,13 @@
+{
+  "name": "@arcana/mic-bridge",
+  "private": true,
+  "version": "0.1.0",
+  "description": "WebSocket relay: browser MediaRecorder audio in, ffmpeg-transcoded Icecast source push to the local Liquidsoap harbor out.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

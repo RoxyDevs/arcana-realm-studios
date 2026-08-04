@@ -324,6 +324,14 @@ export interface LiveIngestCredentialsDto {
   mount: string;
   username: string;
   sourcePassword: string;
+  /**
+   * WebSocket URL of the streaming service's browser-mic bridge — a browser
+   * can't speak the Icecast source protocol (harborHost/harborPort) directly
+   * the way OBS/Mixxx/ffmpeg do, so push-to-talk from the dashboard connects
+   * here instead, sending the same mount/username/sourcePassword as its
+   * first message (see apps/streaming/mic-bridge).
+   */
+  micBridgeUrl: string;
 }
 
 export interface LiveStatusDto {

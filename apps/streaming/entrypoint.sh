@@ -11,12 +11,17 @@ ICECAST_PORT="${ICECAST_PORT:-8000}"
 # Shared by every room's input.harbor mountpoint — one Liquidsoap harbor
 # listener dispatches by mountpoint path, same as Icecast itself.
 LIQUIDSOAP_HARBOR_PORT="${LIQUIDSOAP_HARBOR_PORT:-8006}"
-export ICECAST_RELAY_PASSWORD ICECAST_HOSTNAME ICECAST_PORT LIQUIDSOAP_HARBOR_PORT
+# Browser mic push-to-talk relay (apps/streaming/mic-bridge) — independent of
+# the per-room Liquidsoap script below, started once and left running.
+MIC_BRIDGE_PORT="${MIC_BRIDGE_PORT:-8007}"
+export ICECAST_RELAY_PASSWORD ICECAST_HOSTNAME ICECAST_PORT LIQUIDSOAP_HARBOR_PORT MIC_BRIDGE_PORT
 
 envsubst < /app/icecast.xml.template > /app/icecast.xml
 
 mkdir -p /var/log/icecast2
 icecast2 -c /app/icecast.xml -b
+
+node /app/mic-bridge/server.js &
 
 LAST_HASH=""
 LIQUIDSOAP_PID=""

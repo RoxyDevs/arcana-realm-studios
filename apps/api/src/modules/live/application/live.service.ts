@@ -50,12 +50,16 @@ export class LiveService {
     await this.sessions.create({ roomId, startedById: userId, sourcePassword });
 
     const baseUrl = this.config.get("streaming.baseUrl", { infer: true });
+    const hostname = new URL(baseUrl).hostname;
+    const micBridgePort = this.config.get("streaming.micBridgePort", { infer: true });
+    const mount = `/live-${streamKey}`;
     return {
-      harborHost: new URL(baseUrl).hostname,
+      harborHost: hostname,
       harborPort: this.config.get("streaming.harborPort", { infer: true }),
-      mount: `/live-${streamKey}`,
+      mount,
       username: "source",
       sourcePassword,
+      micBridgeUrl: `wss://${hostname}:${micBridgePort}/mic-ingest`,
     };
   }
 

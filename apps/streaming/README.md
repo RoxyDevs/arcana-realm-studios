@@ -54,6 +54,41 @@ Per IMVU's own support docs (`support.imvu.com` → "Radio Streaming"):
    `request.dynamic` hammering bug below. Session passwords are per-session
    and never reused across starts, and never the same as `ICECAST_SOURCE_PASSWORD`.
 
+## Browser mic push-to-talk (`mic-bridge/`)
+
+A browser can record its own mic via `MediaRecorder`, but there's no browser
+API that speaks the Icecast source protocol the way OBS/Mixxx/ffmpeg do —
+`POST /rooms/:roomId/live/start`'s raw `harborHost`/`harborPort` credentials
+only work for a real Icecast-source app. `mic-bridge/server.js` is a small
+WebSocket relay that fills that gap, colocated with the harbor it feeds so
+it never has to leave localhost:
+
+1. The dashboard connects to `micBridgeUrl` (also returned by
+   `POST /rooms/:roomId/live/start`), sends one JSON control message —
+   `{ mount, username, sourcePassword }`, the same fields OBS/Mixxx would
+   use — then streams `MediaRecorder` WebM/Opus chunks as binary WS frames.
+2. Each connection spawns its own `ffmpeg` (`-f webm -i pipe:0 → -acodec
+   libmp3lame -f mp3 icecast://...@127.0.0.1:$LIQUIDSOAP_HARBOR_PORT$mount`),
+   fed directly from the incoming WS frames. The harbor's own
+   `check-live-auth.sh` callback is what actually authorizes the
+   mount/password — the bridge itself is a dumb transcoding pipe, same
+   trust model as a direct OBS/Mixxx/ffmpeg connection.
+3. Closing the WS (or the harbor rejecting/dropping the source) ends
+   `ffmpeg`, which drops the harbor connection and lets AutoDJ fall back
+   automatically — same behavior as any other live source disconnecting.
+
+**Verified locally** (this sandbox has no Docker either — see "Verified
+locally" below): a real Icecast + Liquidsoap harbor was started from the
+unmodified `radio.liq` shape, `mic-bridge/server.js` was run for real, and a
+small WebSocket test client streamed a real WebM/Opus file into it exactly
+like a browser's `MediaRecorder` would (small timesliced chunks, not one
+blob). `ffprobe` confirmed the bytes captured off the resulting Icecast mount
+were genuine, decodable MP3 (128kbps/44.1kHz/stereo, correct duration). A
+second run with a deliberately wrong `sourcePassword` confirmed the harbor's
+401 rejection propagates cleanly: `ffmpeg` exits, the bridge sends the
+browser a `{"type":"error",...}` message instead of hanging, and no
+mountpoint takeover occurs.
+
 ## Required environment variables
 
 | Variable | Purpose |
@@ -65,12 +100,14 @@ Per IMVU's own support docs (`support.imvu.com` → "Radio Streaming"):
 | `ICECAST_HOSTNAME` | Public hostname of this service (optional, defaults to `localhost`) |
 | `ICECAST_PORT` | Port Icecast listens on (optional, defaults to `8000`) |
 | `LIQUIDSOAP_HARBOR_PORT` | Port the live mic/DJ harbor listener runs on (optional, defaults to `8006`) — must match the API's `STREAMING_HARBOR_PORT` |
+| `MIC_BRIDGE_PORT` | Port the browser mic push-to-talk relay listens on (optional, defaults to `8007`) — must match the API's `STREAMING_MIC_BRIDGE_PORT` |
 
 The API side additionally needs `STREAMING_BASE_URL` set to this service's
 public URL (so `streamUrl` in `GET /rooms/:roomId/stream` and the live
 broadcast host shown in the dashboard actually point here),
-`STREAMING_INTERNAL_TOKEN` matching, and `STREAMING_HARBOR_PORT` matching
-`LIQUIDSOAP_HARBOR_PORT` above.
+`STREAMING_INTERNAL_TOKEN` matching, `STREAMING_HARBOR_PORT` matching
+`LIQUIDSOAP_HARBOR_PORT`, and `STREAMING_MIC_BRIDGE_PORT` matching
+`MIC_BRIDGE_PORT` above.
 
 ## Deploying (Railway)
 
@@ -79,12 +116,13 @@ broadcast host shown in the dashboard actually point here),
    API's Dockerfile — build context needs to be the repo root... actually
    this Dockerfile is self-contained and doesn't need the monorepo, so
    Root Directory can be `apps/streaming` directly).
-2. Generate a public domain, expose port `8000` (Icecast/AutoDJ) and
-   `8006` (Liquidsoap harbor/live broadcast).
+2. Generate a public domain, expose port `8000` (Icecast/AutoDJ), `8006`
+   (Liquidsoap harbor/live broadcast) and `8007` (browser mic bridge).
 3. Set the environment variables above.
 4. On the API service, set `STREAMING_BASE_URL` to this service's public
-   URL, `STREAMING_INTERNAL_TOKEN` to the same secret, and
-   `STREAMING_HARBOR_PORT` to match `LIQUIDSOAP_HARBOR_PORT`.
+   URL, `STREAMING_INTERNAL_TOKEN` to the same secret, `STREAMING_HARBOR_PORT`
+   to match `LIQUIDSOAP_HARBOR_PORT`, and `STREAMING_MIC_BRIDGE_PORT` to
+   match `MIC_BRIDGE_PORT`.
 
 ## Verified locally
 
