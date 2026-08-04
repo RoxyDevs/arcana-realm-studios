@@ -65,8 +65,8 @@ export function LivePanel() {
       </h2>
       <p className="mt-1.5 text-base text-arcana-textMuted">
         Go live with your mic, a DJ set, or a podcast — it takes over from AutoDJ the moment
-        you connect, and AutoDJ resumes automatically when you stop. Broadcast from any
-        Icecast-compatible source app (OBS Studio, Mixxx, BUTT, ffmpeg).
+        you connect, and AutoDJ resumes automatically when you stop. Broadcast from any free
+        Icecast source app — BUTT (simplest), Mixxx (if you want DJ decks/mixing), or ffmpeg.
       </p>
 
       <select
