@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Orbitron, Rajdhani } from "next/font/google";
 import { QueryProvider } from "@/components/query-provider";
 import { BackgroundFx } from "@/components/background-fx";
+import { FaqChatWidget } from "@/components/faq-chat-widget";
 import "./globals.css";
 
 // Orbitron: angular, sci-fi display font for headings — the "holographic
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-arcana-bg font-sans text-base antialiased">
         <BackgroundFx />
         <QueryProvider>{children}</QueryProvider>
+        <FaqChatWidget />
       </body>
     </html>
   );

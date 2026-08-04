@@ -114,6 +114,31 @@ body {
   }
 }
 
+/* Sparkle ring for the FAQ bot's floating launcher button — a handful of
+   twinkling dots orbiting the button, each on its own offset/duration so
+   they don't blink in sync. Purely a "come tap me" attention cue, scoped to
+   that one button rather than sprinkled around the app. */
+@keyframes sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.sparkle-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor, 0 0 12px currentColor;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .arcana-bg-layer {
     animation:
@@ -132,5 +157,9 @@ body {
   .text-holo,
   .holo-border {
     animation: holo-shift 6s linear infinite;
+  }
+
+  .sparkle-dot {
+    animation: sparkle-twinkle 1.8s ease-in-out infinite;
   }
 }
