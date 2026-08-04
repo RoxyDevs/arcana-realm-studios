@@ -209,6 +209,67 @@ export const EnqueueTrackSchema = z.object({
 export type EnqueueTrackDto = z.infer<typeof EnqueueTrackSchema>;
 
 // ---------------------------------------------------------------------------
+// Arcana Guardian — consent-scoped moderation. Reports are about incidents
+// that happened inside a room the reporter owns, never third-party
+// surveillance; reputation is aggregated only from CONFIRMED reports in
+// rooms that opted into the shared network (see GuardianSettings.sharedBlacklistOptIn).
+// ---------------------------------------------------------------------------
+
+export const GuardianReportStatusSchema = z.enum(["PENDING", "CONFIRMED", "DISMISSED"]);
+export type GuardianReportStatus = z.infer<typeof GuardianReportStatusSchema>;
+
+export interface GuardianSettingsDto {
+  roomId: string;
+  antiSpamEnabled: boolean;
+  antiRaidEnabled: boolean;
+  autoModEnabled: boolean;
+  /** Opts this room's confirmed reports into the cross-room ReputationScore aggregate. */
+  sharedBlacklistOptIn: boolean;
+}
+
+export const UpdateGuardianSettingsSchema = z
+  .object({
+    antiSpamEnabled: z.boolean(),
+    antiRaidEnabled: z.boolean(),
+    autoModEnabled: z.boolean(),
+    sharedBlacklistOptIn: z.boolean(),
+  })
+  .partial();
+export type UpdateGuardianSettingsDto = z.infer<typeof UpdateGuardianSettingsSchema>;
+
+export interface GuardianReportDto {
+  id: string;
+  roomId: string;
+  subjectIdentifier: string;
+  category: GuardianReportCategory;
+  description: string;
+  evidenceUrl: string | null;
+  status: GuardianReportStatus;
+  reviewedByUsername: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
+export const CreateGuardianReportSchema = z.object({
+  subjectIdentifier: z.string().min(1).max(200),
+  category: GuardianReportCategorySchema,
+  description: z.string().min(10).max(2000),
+  evidenceUrl: z.string().url().optional(),
+});
+export type CreateGuardianReportDto = z.infer<typeof CreateGuardianReportSchema>;
+
+export const ReviewGuardianReportSchema = z.object({
+  status: z.enum(["CONFIRMED", "DISMISSED"]),
+});
+export type ReviewGuardianReportDto = z.infer<typeof ReviewGuardianReportSchema>;
+
+export interface ReputationScoreDto {
+  subjectIdentifier: string;
+  score: number;
+  confirmedReports: number;
+}
+
+// ---------------------------------------------------------------------------
 // Pagination
 // ---------------------------------------------------------------------------
 
