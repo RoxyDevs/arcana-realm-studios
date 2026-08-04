@@ -11,6 +11,7 @@ export interface ISubscriptionRepository {
     tier: SubscriptionTier;
     status: SubscriptionStatus;
     currentPeriodEnd: Date | null;
+    trialEndsAt: Date | null;
   }): Promise<Subscription>;
   updateStatusByStripeSubscriptionId(
     stripeSubscriptionId: string,

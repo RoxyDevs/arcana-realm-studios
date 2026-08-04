@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   BULK_LICENSE_DISCOUNT,
   SUBSCRIPTION_PLANS,
+  SUBSCRIPTION_TRIAL_DAYS,
   type AuthenticatedUserDto,
   type SubscriptionStatusDto,
 } from "@arcana/types";
@@ -18,9 +19,15 @@ const FREE_PERKS = [
   "Bind unlimited IMVU rooms",
   "AutoDJ radio streaming (no bot avatar needed)",
   "Search the shared upload library across every room",
-  "Guardian: incident reports + moderation settings for your own rooms",
   "Live mic/DJ broadcast from any Icecast-compatible app",
   "Pay-as-you-go bot time with credits",
+];
+
+const GUARDIAN_PERKS = [
+  "Anti-spam, anti-raid & auto-mod toggles per room",
+  "Incident reports with evidence, reviewed and confirmed/dismissed by you",
+  "Opt-in cross-room reputation score — only from confirmed reports, never raw tracking",
+  "No extra module fee — included on every Arcana account",
 ];
 
 const COMPARISON_ROWS: { label: string; free: boolean; plus: boolean; premium: boolean; typical: boolean }[] = [
@@ -92,9 +99,24 @@ export default function PricingPage() {
           Bot time is always pay-as-you-go with credits, at every tier — Plus and Premium just
           make those credits go further, plus a couple of perks.
         </p>
+        <p className="mx-auto mt-2 max-w-2xl text-sm text-arcana-textMuted">
+          New subscribers get a {SUBSCRIPTION_TRIAL_DAYS}-day free trial on Plus or Premium — a
+          card is required to start it, and you can cancel any time before it ends.
+        </p>
       </div>
 
       {error && <p className="mt-6 text-center text-base text-red-400">{error}</p>}
+
+      {subscription?.trialEndsAt && (
+        <p className="mx-auto mt-6 max-w-xl rounded-lg border border-arcana-cyan/40 bg-arcana-cyan/5 p-3 text-center text-sm text-arcana-cyan">
+          Your {subscription.tier === "PREMIUM" ? "Premium" : "Plus"} trial ends{" "}
+          {new Date(subscription.trialEndsAt).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+          })}
+          . Your card will be charged automatically unless you cancel before then.
+        </p>
+      )}
 
       <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
         {/* FREE */}
@@ -162,7 +184,7 @@ export default function PricingPage() {
                   : subscribe.isPending
                     ? "Redirecting…"
                     : user
-                      ? `Upgrade to ${plan.label}`
+                      ? `Start ${SUBSCRIPTION_TRIAL_DAYS}-day trial`
                       : "Sign in to subscribe"}
               </button>
             </div>
@@ -183,6 +205,32 @@ export default function PricingPage() {
         </p>
         <ManualPaymentInfo />
       </div>
+
+      <section className="mx-auto mt-16 max-w-3xl rounded-xl border border-arcana-pink/40 bg-arcana-surface/60 p-8 backdrop-blur-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-xl font-bold uppercase tracking-wide text-arcana-pink">
+            Arcana Guardian
+          </h2>
+          <span className="rounded-full border border-arcana-pink/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-arcana-pink">
+            Included, not a music feature
+          </span>
+        </div>
+        <p className="mt-2 max-w-2xl text-base text-arcana-textMuted">
+          Moderation is its own module, not a bullet point under your radio plan — it ships free
+          on every tier and is configured per room from your dashboard.
+        </p>
+        <ul className="mt-4 grid grid-cols-1 gap-2 text-base text-arcana-textMuted sm:grid-cols-2">
+          {GUARDIAN_PERKS.map((perk) => (
+            <li key={perk}>· {perk}</li>
+          ))}
+        </ul>
+        <Link
+          href={user ? "/dashboard" : "/login"}
+          className="mt-5 inline-block rounded-md border border-arcana-pink/60 px-5 py-3 text-base font-medium text-arcana-text transition-all hover:shadow-neon-pink-sm"
+        >
+          Configure Guardian for your room
+        </Link>
+      </section>
 
       <h2 className="mt-16 text-center font-display text-2xl font-bold text-arcana-text">
         How this compares

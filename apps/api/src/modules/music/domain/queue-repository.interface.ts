@@ -11,4 +11,8 @@ export interface IQueueRepository {
   /** Pops and marks the earliest pending item as played; null if the queue is empty. */
   popNext(roomId: string): Promise<QueueItemWithTrack | null>;
   remove(queueItemId: string, roomId: string): Promise<void>;
+  /** Swaps a pending item's position with its immediate neighbor in the given direction. No-op at either end of the queue. */
+  move(queueItemId: string, roomId: string, direction: "up" | "down"): Promise<void>;
+  /** The most recently played item for the room (by playedAt desc), i.e. what AutoDJ most recently started streaming — null if nothing has played yet. */
+  getMostRecentlyPlayed(roomId: string): Promise<QueueItemWithTrack | null>;
 }

@@ -1,10 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Post, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
-import type { AuthenticatedUserDto, QueueItemDto } from "@arcana/types";
+import type { AuthenticatedUserDto, QueueItemDto, NowPlayingDto } from "@arcana/types";
 import { JwtAuthGuard } from "../../auth/infrastructure/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { MusicService } from "../application/music.service";
 import { EnqueueTrackRequestDto } from "./enqueue-track.dto";
+import { MoveQueueItemRequestDto } from "./move-queue-item.dto";
 
 @ApiTags("music")
 @Controller("rooms/:roomId/queue")
@@ -58,5 +59,25 @@ export class MusicController {
     @CurrentUser() user: AuthenticatedUserDto,
   ): Promise<void> {
     return this.musicService.removeFromQueue(roomId, user.id, queueItemId);
+  }
+
+  @Post(":queueItemId/move")
+  @ApiOperation({ summary: "Moves a pending queue item up or down one position" })
+  move(
+    @Param("roomId") roomId: string,
+    @Param("queueItemId") queueItemId: string,
+    @CurrentUser() user: AuthenticatedUserDto,
+    @Body() dto: MoveQueueItemRequestDto,
+  ): Promise<void> {
+    return this.musicService.moveInQueue(roomId, user.id, queueItemId, dto.direction);
+  }
+
+  @Get("now-playing")
+  @ApiOperation({ summary: "The track AutoDJ most recently started playing for this room" })
+  getNowPlaying(
+    @Param("roomId") roomId: string,
+    @CurrentUser() user: AuthenticatedUserDto,
+  ): Promise<NowPlayingDto | null> {
+    return this.musicService.getNowPlaying(roomId, user.id);
   }
 }

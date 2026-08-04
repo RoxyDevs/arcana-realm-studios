@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { ConfigService } from "@nestjs/config";
 import { ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
@@ -11,8 +12,14 @@ import type { AppConfig } from "./config/configuration";
 async function bootstrap(): Promise<void> {
   // rawBody:true keeps req.rawBody available (needed for Stripe signature
   // verification) while still parsing req.body as JSON everywhere else.
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   const config = app.get(ConfigService<AppConfig, true>);
+
+  // Railway (and Vercel) sit in front of this service behind a reverse
+  // proxy — without trust proxy, req.ip resolves to the proxy's internal
+  // address for every request, which would make every subscription-trial
+  // anti-abuse check (keyed on IP) see the same "IP" for all users.
+  app.set("trust proxy", 1);
 
   app.use(cookieParser());
 

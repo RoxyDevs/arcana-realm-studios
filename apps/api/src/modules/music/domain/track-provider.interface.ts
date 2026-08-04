@@ -14,6 +14,12 @@ export interface ResolvedTrackMetadata {
   artist: string | null;
   durationSec: number;
   thumbnailUrl: string | null;
+  /**
+   * Only ever set by the JAMENDO provider — its Creative Commons licensing
+   * permits actually streaming the audio, unlike SPOTIFY/YOUTUBE which stay
+   * metadata-only here on purpose (see External Integrations Policy).
+   */
+  fileUrl?: string;
 }
 
 export interface ITrackProvider {

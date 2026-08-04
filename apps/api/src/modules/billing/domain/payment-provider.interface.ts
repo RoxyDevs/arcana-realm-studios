@@ -19,6 +19,8 @@ export interface WebhookEvent {
   creditsPurchased: number | null;
   currentPeriodEnd: Date | null;
   tier: "PLUS" | "PREMIUM" | null;
+  /** Set when the subscription this event concerns started as a trial (from Stripe's own trial_end). */
+  trialEndsAt: Date | null;
 }
 
 export interface IPaymentProvider {
@@ -29,7 +31,9 @@ export interface IPaymentProvider {
     successUrl: string;
     cancelUrl: string;
     metadata: Record<string, string>;
+    /** Subscription mode only — Stripe still requires a card up front, it just delays the first charge. */
+    trialPeriodDays?: number;
   }): Promise<CheckoutSessionResult>;
 
-  parseWebhookEvent(rawBody: Buffer, signature: string): WebhookEvent;
+  parseWebhookEvent(rawBody: Buffer, signature: string): Promise<WebhookEvent>;
 }
