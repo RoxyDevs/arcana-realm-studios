@@ -31,6 +31,16 @@ export class MusicController {
     return this.musicService.enqueue(roomId, user.id, dto);
   }
 
+  @Post("tracks/:trackId")
+  @ApiOperation({ summary: "Adds an existing library track (yours or another room's upload) to this room's queue" })
+  enqueueExisting(
+    @Param("roomId") roomId: string,
+    @Param("trackId") trackId: string,
+    @CurrentUser() user: AuthenticatedUserDto,
+  ): Promise<QueueItemDto> {
+    return this.musicService.enqueueExisting(roomId, user.id, trackId);
+  }
+
   @Post("next")
   @ApiOperation({ summary: "AutoDJ: advances the queue and returns the next track to play" })
   playNext(
