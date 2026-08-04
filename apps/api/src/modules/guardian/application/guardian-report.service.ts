@@ -12,6 +12,7 @@ import {
   type IGuardianSettingsRepository,
 } from "../domain/guardian-settings-repository.interface";
 import { REPUTATION_REPOSITORY, type IReputationRepository } from "../domain/reputation-repository.interface";
+import { GuardianLicenseService } from "./guardian-license.service";
 
 function toDto(report: GuardianReportWithReviewer): GuardianReportDto {
   return {
@@ -36,11 +37,13 @@ export class GuardianReportService {
     @Inject(GUARDIAN_SETTINGS_REPOSITORY) private readonly settings: IGuardianSettingsRepository,
     @Inject(REPUTATION_REPOSITORY) private readonly reputation: IReputationRepository,
     @Inject(AUDIT_LOGGER) private readonly auditLogger: IAuditLogger,
+    private readonly guardianLicense: GuardianLicenseService,
   ) {}
 
   /** Filing a report is scoped to the room owner — this is about an incident in *your* room, never third-party tracking. */
   async create(roomId: string, userId: string, dto: CreateGuardianReportDto): Promise<GuardianReportDto> {
     await this.roomAccess.assertOwner(roomId, userId);
+    await this.guardianLicense.assertActive(roomId);
     const report = await this.reports.create({
       roomId,
       subjectIdentifier: dto.subjectIdentifier,
@@ -53,6 +56,7 @@ export class GuardianReportService {
 
   async listByRoom(roomId: string, userId: string): Promise<GuardianReportDto[]> {
     await this.roomAccess.assertOwner(roomId, userId);
+    await this.guardianLicense.assertActive(roomId);
     const reports = await this.reports.listByRoom(roomId);
     return reports.map(toDto);
   }

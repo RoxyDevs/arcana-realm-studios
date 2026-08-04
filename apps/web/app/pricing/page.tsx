@@ -27,7 +27,6 @@ const GUARDIAN_PERKS = [
   "Anti-spam, anti-raid & auto-mod toggles per room",
   "Incident reports with evidence, reviewed and confirmed/dismissed by you",
   "Opt-in cross-room reputation score — only from confirmed reports, never raw tracking",
-  "No extra module fee — included on every Arcana account",
 ];
 
 const COMPARISON_ROWS: { label: string; free: boolean; plus: boolean; premium: boolean; typical: boolean }[] = [
@@ -212,12 +211,13 @@ export default function PricingPage() {
             Arcana Guardian
           </h2>
           <span className="rounded-full border border-arcana-pink/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-arcana-pink">
-            Included, not a music feature
+            Pay-as-you-go, like bot time
           </span>
         </div>
         <p className="mt-2 max-w-2xl text-base text-arcana-textMuted">
-          Moderation is its own module, not a bullet point under your radio plan — it ships free
-          on every tier and is configured per room from your dashboard.
+          Moderation is its own module, not a bullet point under your radio plan — it has its own
+          credit-funded license, independent of bot time, so you can run one without the other.
+          Configure it per room from your dashboard once a room has an active Guardian license.
         </p>
         <ul className="mt-4 grid grid-cols-1 gap-2 text-base text-arcana-textMuted sm:grid-cols-2">
           {GUARDIAN_PERKS.map((perk) => (

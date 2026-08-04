@@ -175,6 +175,43 @@ export interface BulkLicensePurchaseResultDto {
 }
 
 // ---------------------------------------------------------------------------
+// Guardian Licenses — time-boxed moderation access per room, deliberately
+// independent of BotLicense (a room can run AutoDJ without Guardian, or
+// Guardian without AutoDJ). Same credit-ledger pattern as BotLicense;
+// priced lower per plan since Guardian carries no streaming infrastructure
+// cost, but every plan still costs real credits — Guardian is no longer a
+// free-forever module.
+// ---------------------------------------------------------------------------
+
+export const GuardianLicensePlanSchema = z.enum(["DAY_1", "WEEK_1", "MONTH_1", "MONTH_3", "YEAR_1"]);
+export type GuardianLicensePlan = z.infer<typeof GuardianLicensePlanSchema>;
+
+export interface GuardianLicensePlanDefinition {
+  days: number;
+  credits: number;
+  label: string;
+}
+
+export const GUARDIAN_LICENSE_PLANS: Record<GuardianLicensePlan, GuardianLicensePlanDefinition> = {
+  DAY_1: { days: 1, credits: 25, label: "1 día" },
+  WEEK_1: { days: 7, credits: 120, label: "1 semana" },
+  MONTH_1: { days: 30, credits: 400, label: "1 mes" },
+  MONTH_3: { days: 90, credits: 1000, label: "3 meses" },
+  YEAR_1: { days: 365, credits: 3000, label: "1 año" },
+};
+
+export const PurchaseGuardianLicenseSchema = z.object({
+  plan: GuardianLicensePlanSchema,
+});
+export type PurchaseGuardianLicenseDto = z.infer<typeof PurchaseGuardianLicenseSchema>;
+
+export interface GuardianLicenseStatusDto {
+  active: boolean;
+  plan: GuardianLicensePlan | null;
+  expiresAt: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Rooms — binding a user's IMVU room to Arcana (ownership verified via a
 // token placed in the room's description, mirroring Vusic's flow).
 // ---------------------------------------------------------------------------

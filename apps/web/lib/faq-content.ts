@@ -24,7 +24,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
   {
     question: "¿Qué es Arcana Guardian?",
     answer:
-      "El módulo de moderación: anti-spam, anti-raid, reportes de incidentes y reputación opcional entre salas. Viene incluido gratis en cualquier plan, no es un extra pago.",
+      "El módulo de moderación: anti-spam, anti-raid, reportes de incidentes y reputación opcional entre salas. Tiene su propia licencia paga por créditos, independiente del tiempo de bot de música — podés tener una sin la otra, o las dos.",
   },
   {
     question: "¿Puedo transmitir con mi mic en vivo?",

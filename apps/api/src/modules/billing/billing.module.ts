@@ -26,5 +26,8 @@ import { PrismaTrialClaimRepository } from "./infrastructure/prisma-trial-claim.
     { provide: BOT_LICENSE_REPOSITORY, useClass: PrismaBotLicenseRepository },
     { provide: TRIAL_CLAIM_REPOSITORY, useClass: PrismaTrialClaimRepository },
   ],
+  // Guardian's own credit-funded license (GuardianLicenseService) reuses the wallet/subscription
+  // ports rather than duplicating credit-spend logic — see GuardianModule.
+  exports: [WALLET_REPOSITORY, SUBSCRIPTION_REPOSITORY],
 })
 export class BillingModule {}
