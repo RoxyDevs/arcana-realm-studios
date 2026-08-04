@@ -166,6 +166,24 @@ export type BindRoomDto = z.infer<typeof BindRoomSchema>;
 // Arcana Music
 // ---------------------------------------------------------------------------
 
+/**
+ * Mirrors what apps/api's TracksController + MusicService accept for
+ * uploads — defined once here so the web dashboard can validate client-side
+ * before spending a round trip, without drifting from what the API actually
+ * enforces.
+ */
+export const TRACK_UPLOAD_MAX_BYTES = 20 * 1024 * 1024;
+
+export const ALLOWED_AUDIO_UPLOAD_MIME_TYPES: Record<string, string> = {
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
+  "audio/ogg": "ogg",
+  "audio/aac": "aac",
+  "audio/mp4": "m4a",
+};
+
 export interface TrackDto {
   id: string;
   source: TrackSource;

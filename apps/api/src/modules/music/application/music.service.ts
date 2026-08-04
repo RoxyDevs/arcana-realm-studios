@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
-import type { TrackDto, QueueItemDto } from "@arcana/types";
+import { ALLOWED_AUDIO_UPLOAD_MIME_TYPES, type TrackDto, type QueueItemDto } from "@arcana/types";
 import type { Track } from "@arcana/database";
 import {
   TRACK_REPOSITORY,
@@ -12,16 +12,6 @@ import { ROOM_ACCESS_CHECKER, type IRoomAccessChecker } from "../../../common/do
 import { OBJECT_STORAGE, type IObjectStorage } from "../../../common/domain/object-storage.interface";
 import type { EnqueueTrackDto } from "@arcana/types";
 import { TrackProviderRegistry } from "./track-provider.registry";
-
-const ALLOWED_AUDIO_MIME_TYPES: Record<string, string> = {
-  "audio/mpeg": "mp3",
-  "audio/mp3": "mp3",
-  "audio/wav": "wav",
-  "audio/x-wav": "wav",
-  "audio/ogg": "ogg",
-  "audio/aac": "aac",
-  "audio/mp4": "m4a",
-};
 
 export interface UploadTrackParams {
   title: string;
@@ -108,10 +98,10 @@ export class MusicService {
     if (!file) {
       throw new BadRequestException("No file uploaded");
     }
-    const extension = ALLOWED_AUDIO_MIME_TYPES[file.mimetype];
+    const extension = ALLOWED_AUDIO_UPLOAD_MIME_TYPES[file.mimetype];
     if (!extension) {
       throw new BadRequestException(
-        `Unsupported file type "${file.mimetype}" — allowed: ${Object.keys(ALLOWED_AUDIO_MIME_TYPES).join(", ")}`,
+        `Unsupported file type "${file.mimetype}" — allowed: ${Object.keys(ALLOWED_AUDIO_UPLOAD_MIME_TYPES).join(", ")}`,
       );
     }
 
