@@ -137,7 +137,7 @@ export function TrackUploadPanel() {
         Music
       </h2>
       <p className="mt-1.5 text-base text-arcana-textMuted">
-        Search the shared library everyone's uploaded, or add your own track — either way it
+        Search the shared library everyone&rsquo;s uploaded, or add your own track — either way it
         queues for AutoDJ immediately.
       </p>
 

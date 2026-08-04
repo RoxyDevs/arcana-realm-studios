@@ -108,7 +108,7 @@ export function LivePanel() {
           {credentials && (
             <div className="mt-3 space-y-2">
               <p className="text-sm text-arcana-textMuted">
-                Paste these into your broadcast app's stream settings — shown once, so copy
+                Paste these into your broadcast app&rsquo;s stream settings — shown once, so copy
                 them now:
               </p>
               <CredentialRow label="Server" value={credentials.harborHost} />

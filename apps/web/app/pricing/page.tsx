@@ -179,7 +179,7 @@ export default function PricingPage() {
       <div className="mx-auto mt-8 max-w-xl">
         <p className="text-center text-sm text-arcana-textMuted">
           No card, or want Plus/Premium right now? Pay with PayPal or VCoins below, mention
-          which plan and your username, and we'll activate it by hand.
+          which plan and your username, and we&rsquo;ll activate it by hand.
         </p>
         <ManualPaymentInfo />
       </div>
@@ -188,9 +188,9 @@ export default function PricingPage() {
         How this compares
       </h2>
       <p className="mx-auto mt-2 max-w-2xl text-center text-base text-arcana-textMuted">
-        &ldquo;Typical music bots&rdquo; below reflects what's publicly advertised by other IMVU
-        music bots — moderation and no-avatar-required streaming aren't things we found any of
-        them offering.
+        &ldquo;Typical music bots&rdquo; below reflects what&rsquo;s publicly advertised by other
+        IMVU music bots — moderation and no-avatar-required streaming aren&rsquo;t things we found
+        any of them offering.
       </p>
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-arcana-border">
