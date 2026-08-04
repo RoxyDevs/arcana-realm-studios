@@ -2,6 +2,38 @@
 
 Running log of pending work, dated by session. Newest entries on top.
 
+## 2026-08-04 (continuación)
+
+- **Guardian monetizado**: ya no es gratis para siempre — licencia propia
+  por créditos (`GuardianLicense`), independiente de `BotLicense`. Ver
+  `apps/api/src/modules/guardian/application/guardian-license.service.ts`.
+- **Push-to-talk hecho**: `apps/streaming/mic-bridge` — puente WebSocket
+  real, probado de punta a punta en sandbox (icecast2+liquidsoap+ffmpeg
+  reales, sin Docker) con audio genuino confirmado por `ffprobe`.
+- **Bot de IMVU — investigación de `imvu.js` completa, hallazgo importante**:
+  `imvu.js` **no es un cliente del protocolo de IMVU** — es un cliente de un
+  relay de terceros (`imvu.js.org`, no afiliado a IMVU) que autentica ahí y
+  después escucha eventos de sala por un canal de **Supabase Realtime** que
+  ese backend entrega. Usarlo implica darle el token de la cuenta bot de
+  IMVU a un sitio de un solo mantenedor, sin código abierto del lado que sí
+  habla con IMVU, con una licencia que prohíbe forkearlo/modificarlo. Detalle
+  completo en `apps/api/src/modules/imvu-bot/README.md`. La interfaz de
+  dominio `IImvuRoomChatAdapter` ya está escrita
+  (`apps/api/src/modules/imvu-bot/domain/`), pero **no hay adapter de
+  infraestructura todavía** — bloqueado en (a) decisión de negocio sobre
+  confiar en `imvu.js.org` y (b) credenciales reales de una cuenta bot para
+  probar. También encontré que `RoomMember` no tiene ningún campo de
+  identidad de IMVU — hace falta agregar algo como `imvuDisplayName` antes
+  de que las respuestas conscientes de rol (`roleTag`) sean posibles.
+- Jamendo: cuenta `roxdev` registrada, key de app creada del lado de
+  Jamendo, pero el login en devportal.jamendo.com sigue bloqueado
+  ("account isn't active or hasn't been approved yet"). Se escribió a
+  `api@jamendo.com` pidiendo que activen la cuenta — esperando respuesta.
+- Sigue pendiente: `JAMENDO_CLIENT_ID` (bloqueado en lo de arriba),
+  `STRIPE_PRICE_PLUS_MONTHLY`/`STRIPE_PRICE_PREMIUM_MONTHLY` reales, y
+  renombrar el servicio de Railway `arcana-realm-studios` → `streaming`
+  (no se puede por API/MCP, solo desde el dashboard — instrucciones dadas).
+
 ## 2026-08-04
 
 Pendiente para retomar mañana, en orden de prioridad:
