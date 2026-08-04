@@ -36,12 +36,16 @@ TMP_FILE=$(mktemp)
 def next_${VAR}() =
   url = string.trim(process.read("/app/next-track.sh ${ROOM_ID}"))
   if url == "" then
-    request.create("invalid://no-track-available")
+    null()
   else
     request.create(url)
   end
 end
-queue_${VAR} = request.dynamic(next_${VAR})
+# retry_delay: without it, request.dynamic defaults to polling next_${VAR}
+# (and therefore next-track.sh -> the API) up to 10x/sec — confirmed against
+# a real running instance, not just read from docs. 4s keeps API load sane
+# per active room while still picking up a freshly queued track quickly.
+queue_${VAR} = request.dynamic(retry_delay=4., next_${VAR})
 # fallback to silence instead of dropping the mount when a room has
 # nothing uploaded yet (e.g. right after binding, before the first track).
 src_${VAR} = fallback(track_sensitive=false, [queue_${VAR}, blank()])

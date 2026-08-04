@@ -100,7 +100,26 @@ build" check would have missed:
   `settings.log.level.set(3)` / `settings.init.allow_root.set(true)`
   accordingly — re-verified against a real Icecast+Liquidsoap 2.2.4 run
   locally, and matches Liquidsoap's own documented 2.1→2.2 migration path.
+- **`request.dynamic` was hammering the API at ~10–25 req/sec per active
+  mount, forever** — confirmed by instrumenting `next-track.sh` and counting
+  real invocations against a real running `apps/api`: with no explicit
+  `retry_delay`, Liquidsoap 2.2.4 re-invoked the resolver function that
+  fast regardless of whether a track was actively playing, which would have
+  scaled linearly with room count and could have taken down the API with
+  only a handful of active rooms. Separately, the "nothing queued" sentinel
+  (`request.create("invalid://no-track-available")`) isn't a real protocol,
+  so every one of those retries also logged `Unknown protocol "invalid" in
+  URI` — 25×/sec of log spam per empty room. Fixed by returning `null()`
+  (the documented way to tell `request.dynamic` "nothing right now") instead
+  of a fake URI, and setting `retry_delay=4.` explicitly. Re-measured against
+  the same real running pipeline: ~1 request per 3–4s per mount, zero log
+  spam, stream still verified as valid decodable MP3 throughout.
 
 What's still unverified is the Dockerfile build itself and Railway's
-specific networking (public domain → container port 8000) — those need a
-real deploy, but the audio pipeline underneath them is now proven correct.
+specific networking (public domain → container port 8000) — this sandbox's
+network policy blocks Docker Hub's blob CDN (`production.cloudfront.docker.com`,
+403), so even a local `docker build` can't get past pulling the base image.
+Everything else here — Icecast, Liquidsoap, the actual generated script, the
+real `apps/api` `/internal/streaming/*` endpoints, a real seeded room/track,
+and a real listener client — was run end-to-end outside Docker and is proven
+correct, including the fix above.
