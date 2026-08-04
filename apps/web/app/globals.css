@@ -6,6 +6,14 @@
   color-scheme: dark;
 }
 
+/* Reserves the scrollbar's width permanently instead of toggling it in/out —
+   without this, anything that briefly changes page height (like GlitchText's
+   frame-by-frame reveal) makes the scrollbar appear/disappear and the whole
+   layout jitter sideways. */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   background-color: #05050a;
   color: #e8e8f5;
