@@ -40,6 +40,19 @@ Per IMVU's own support docs (`support.imvu.com` → "Radio Streaming"):
    silent as long as *something* has been uploaded.
 4. A room with nothing uploaded yet falls back to `blank()` (silence)
    instead of the mountpoint dying.
+5. **Live mic/DJ broadcast**: each active room also gets an
+   `input.harbor("live-<streamKey>", port=LIQUIDSOAP_HARBOR_PORT, auth=...)`
+   source. `POST /rooms/:roomId/live/start` (room owner, room needs an
+   active bot license) issues short-lived, single-use ingest credentials —
+   point any Icecast-compatible source app (OBS Studio, Mixxx, BUTT,
+   ffmpeg) at them and the room's mount switches from AutoDJ to the live
+   feed the moment it connects, falling back to AutoDJ automatically when
+   the broadcaster disconnects or `POST /rooms/:roomId/live/stop` is
+   called. The harbor's `auth` callback shells out to `check-live-auth.sh`,
+   which hits `GET /internal/streaming/rooms/:roomId/live-auth` — checked
+   once per *connection attempt*, not polled, so it can't reproduce the
+   `request.dynamic` hammering bug below. Session passwords are per-session
+   and never reused across starts, and never the same as `ICECAST_SOURCE_PASSWORD`.
 
 ## Required environment variables
 
@@ -51,10 +64,13 @@ Per IMVU's own support docs (`support.imvu.com` → "Radio Streaming"):
 | `ICECAST_ADMIN_PASSWORD` | Icecast admin panel password |
 | `ICECAST_HOSTNAME` | Public hostname of this service (optional, defaults to `localhost`) |
 | `ICECAST_PORT` | Port Icecast listens on (optional, defaults to `8000`) |
+| `LIQUIDSOAP_HARBOR_PORT` | Port the live mic/DJ harbor listener runs on (optional, defaults to `8006`) — must match the API's `STREAMING_HARBOR_PORT` |
 
 The API side additionally needs `STREAMING_BASE_URL` set to this service's
-public URL (so `streamUrl` in `GET /rooms/:roomId/stream` actually points
-here) and the matching `STREAMING_INTERNAL_TOKEN`.
+public URL (so `streamUrl` in `GET /rooms/:roomId/stream` and the live
+broadcast host shown in the dashboard actually point here),
+`STREAMING_INTERNAL_TOKEN` matching, and `STREAMING_HARBOR_PORT` matching
+`LIQUIDSOAP_HARBOR_PORT` above.
 
 ## Deploying (Railway)
 
@@ -63,10 +79,12 @@ here) and the matching `STREAMING_INTERNAL_TOKEN`.
    API's Dockerfile — build context needs to be the repo root... actually
    this Dockerfile is self-contained and doesn't need the monorepo, so
    Root Directory can be `apps/streaming` directly).
-2. Generate a public domain, expose port `8000`.
+2. Generate a public domain, expose port `8000` (Icecast/AutoDJ) and
+   `8006` (Liquidsoap harbor/live broadcast).
 3. Set the environment variables above.
 4. On the API service, set `STREAMING_BASE_URL` to this service's public
-   URL and `STREAMING_INTERNAL_TOKEN` to the same secret.
+   URL, `STREAMING_INTERNAL_TOKEN` to the same secret, and
+   `STREAMING_HARBOR_PORT` to match `LIQUIDSOAP_HARBOR_PORT`.
 
 ## Verified locally
 
@@ -100,7 +118,43 @@ build" check would have missed:
   `settings.log.level.set(3)` / `settings.init.allow_root.set(true)`
   accordingly — re-verified against a real Icecast+Liquidsoap 2.2.4 run
   locally, and matches Liquidsoap's own documented 2.1→2.2 migration path.
+- **`request.dynamic` was hammering the API at ~10–25 req/sec per active
+  mount, forever** — confirmed by instrumenting `next-track.sh` and counting
+  real invocations against a real running `apps/api`: with no explicit
+  `retry_delay`, Liquidsoap 2.2.4 re-invoked the resolver function that
+  fast regardless of whether a track was actively playing, which would have
+  scaled linearly with room count and could have taken down the API with
+  only a handful of active rooms. Separately, the "nothing queued" sentinel
+  (`request.create("invalid://no-track-available")`) isn't a real protocol,
+  so every one of those retries also logged `Unknown protocol "invalid" in
+  URI` — 25×/sec of log spam per empty room. Fixed by returning `null()`
+  (the documented way to tell `request.dynamic` "nothing right now") instead
+  of a fake URI, and setting `retry_delay=4.` explicitly. Re-measured against
+  the same real running pipeline: ~1 request per 3–4s per mount, zero log
+  spam, stream still verified as valid decodable MP3 throughout.
+
+- **Live mic/DJ broadcast, end-to-end with real ffmpeg pushes**: seeded a
+  licensed room, started a real Liquidsoap harbor listener from the
+  unmodified generated script, then pushed a real MP3 into
+  `icecast://source:<sessionPassword>@localhost:8006/live-<streamKey>` with
+  ffmpeg (the same URL scheme OBS/Mixxx/BUTT use). Confirmed: the mount
+  switched from silence to the live source (`Switch to input.harbor with
+  transition`) the moment a correctly-authenticated push connected, a
+  listener `curl`+`mpg123` confirmed genuine playable MP3 while it was
+  live, a wrong-password push was rejected outright with a clean HTTP 401
+  (no takeover), and the mount fell back to AutoDJ automatically the
+  instant the live source disconnected. This also caught a real
+  API-contract bug: `POST /rooms/:roomId/live/stop` returned `201` with an
+  empty body instead of `204`, which crashed the dashboard's fetch client
+  on `response.json()` — fixed on both sides (`@HttpCode(204)` on the
+  endpoint, and `apiFetch` now checks for actual body content instead of
+  assuming only status `204` can be empty).
 
 What's still unverified is the Dockerfile build itself and Railway's
-specific networking (public domain → container port 8000) — those need a
-real deploy, but the audio pipeline underneath them is now proven correct.
+specific networking (public domain → container port 8000) — this sandbox's
+network policy blocks Docker Hub's blob CDN (`production.cloudfront.docker.com`,
+403), so even a local `docker build` can't get past pulling the base image.
+Everything else here — Icecast, Liquidsoap, the actual generated script, the
+real `apps/api` `/internal/streaming/*` endpoints, a real seeded room/track,
+and a real listener client — was run end-to-end outside Docker and is proven
+correct, including the fix above.

@@ -36,4 +36,23 @@ export class PrismaTrackRepository implements ITrackRepository {
       },
     });
   }
+
+  findById(id: string): Promise<Track | null> {
+    return this.prisma.track.findUnique({ where: { id } });
+  }
+
+  search(query: string, limit: number): Promise<Track[]> {
+    return this.prisma.track.findMany({
+      where: {
+        source: "UPLOAD",
+        fileUrl: { not: null },
+        OR: [
+          { title: { contains: query, mode: "insensitive" } },
+          { artist: { contains: query, mode: "insensitive" } },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+  }
 }

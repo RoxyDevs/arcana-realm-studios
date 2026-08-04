@@ -1,6 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { PrismaClient } from "@arcana/database";
 import { PRISMA_CLIENT } from "../../../common/infrastructure/prisma.module";
+import {
+  LIVE_SESSION_REPOSITORY,
+  type ILiveSessionRepository,
+} from "../../live/domain/live-session-repository.interface";
 
 export interface ActiveRoomStream {
   roomId: string;
@@ -11,7 +15,16 @@ const MAX_QUEUE_SKIPS = 5;
 
 @Injectable()
 export class StreamingInternalService {
-  constructor(@Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
+    @Inject(LIVE_SESSION_REPOSITORY) private readonly liveSessions: ILiveSessionRepository,
+  ) {}
+
+  /** input.harbor's auth callback, proxied per connection attempt — never polled, so it can't reproduce the request.dynamic hammering bug. */
+  async checkLiveAuth(roomId: string, sourcePassword: string): Promise<boolean> {
+    const session = await this.liveSessions.findActiveByRoomAndPassword(roomId, sourcePassword);
+    return !!session;
+  }
 
   /** Rooms Liquidsoap should currently be broadcasting: verified + an unexpired bot license. */
   async listActiveRooms(): Promise<ActiveRoomStream[]> {

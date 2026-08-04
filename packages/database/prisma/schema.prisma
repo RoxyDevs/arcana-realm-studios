@@ -42,6 +42,7 @@ model User {
   reviewedReports GuardianReport[] @relation("ReportReviewer")
   auditLogs     AuditLog[]
   grantedLicenses BotLicense[]     @relation("LicenseGrantedBy")
+  liveSessions  LiveSession[]
 
   @@map("users")
 }
@@ -112,9 +113,35 @@ model Room {
   botLicenses      BotLicense[]
   guardianSettings GuardianSettings?
   guardianReports  GuardianReport[]
+  liveSessions     LiveSession[]
 
   @@index([ownerId])
   @@map("rooms")
+}
+
+// ---------------------------------------------------------------------------
+// Live DJ / mic broadcasting — a room owner's own live audio (mic, DJ set,
+// podcast) takes over the Icecast mount from AutoDJ while connected, then
+// falls back to the queue automatically once the session ends. The harbor
+// source password is per-session and short-lived on purpose: `Room.streamKey`
+// is a stable public-facing identifier, but source credentials should never
+// be — see StreamingInternalService's live-auth check, which validates
+// against `endedAt IS NULL` on every harbor connection attempt.
+// ---------------------------------------------------------------------------
+
+model LiveSession {
+  id            String    @id @default(cuid())
+  roomId        String
+  startedById   String
+  sourcePassword String   @unique
+  startedAt     DateTime  @default(now())
+  endedAt       DateTime?
+
+  room      Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  startedBy User @relation(fields: [startedById], references: [id], onDelete: Cascade)
+
+  @@index([roomId, endedAt])
+  @@map("live_sessions")
 }
 
 // ---------------------------------------------------------------------------

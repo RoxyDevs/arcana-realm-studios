@@ -88,6 +88,38 @@ export const AdjustWalletSchema = z.object({
 });
 export type AdjustWalletDto = z.infer<typeof AdjustWalletSchema>;
 
+/**
+ * Paid subscription tiers — a recurring perk bundle on top of the credit
+ * wallet, not a replacement for it. Bot time itself stays pay-as-you-go
+ * with credits at every tier (including FREE); PLUS/PREMIUM just make that
+ * credit spend go further. priceUsd is informational display copy — the
+ * actual charge amount lives in the Stripe Price object each tier's
+ * STRIPE_PRICE_*_MONTHLY env var points to, so this number and Stripe's
+ * price must be kept in sync by hand.
+ */
+export interface SubscriptionPlanDefinition {
+  label: string;
+  priceUsd: number;
+  /** Percent off every credit-funded bot-license purchase (single or bulk), applied on top of BULK_LICENSE_DISCOUNT. */
+  creditDiscountPercent: number;
+  perks: string[];
+}
+
+export const SUBSCRIPTION_PLANS: Record<"PLUS" | "PREMIUM", SubscriptionPlanDefinition> = {
+  PLUS: {
+    label: "Plus",
+    priceUsd: 6.99,
+    creditDiscountPercent: 10,
+    perks: ["10% off all bot-time purchases", "Priority support"],
+  },
+  PREMIUM: {
+    label: "Premium",
+    priceUsd: 14.99,
+    creditDiscountPercent: 20,
+    perks: ["20% off all bot-time purchases", "Priority support", "Early access to new modules"],
+  },
+};
+
 // ---------------------------------------------------------------------------
 // Bot Licenses — time-boxed bot access per room ("1 day" ... "1 year" plans).
 // Prices are credits, defined once here so the pricing table on the web app
@@ -166,6 +198,24 @@ export type BindRoomDto = z.infer<typeof BindRoomSchema>;
 // Arcana Music
 // ---------------------------------------------------------------------------
 
+/**
+ * Mirrors what apps/api's TracksController + MusicService accept for
+ * uploads — defined once here so the web dashboard can validate client-side
+ * before spending a round trip, without drifting from what the API actually
+ * enforces.
+ */
+export const TRACK_UPLOAD_MAX_BYTES = 20 * 1024 * 1024;
+
+export const ALLOWED_AUDIO_UPLOAD_MIME_TYPES: Record<string, string> = {
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
+  "audio/ogg": "ogg",
+  "audio/aac": "aac",
+  "audio/mp4": "m4a",
+};
+
 export interface TrackDto {
   id: string;
   source: TrackSource;
@@ -189,6 +239,86 @@ export const EnqueueTrackSchema = z.object({
   externalId: z.string().min(1),
 });
 export type EnqueueTrackDto = z.infer<typeof EnqueueTrackSchema>;
+
+// ---------------------------------------------------------------------------
+// Live DJ / mic broadcasting — a room owner's own live audio (mic, DJ set,
+// podcast) preempts AutoDJ on the room's Icecast mount while connected.
+// ---------------------------------------------------------------------------
+
+/** Returned once, right when a session starts — the ingest relay/browser needs these to connect; never re-exposed afterward. */
+export interface LiveIngestCredentialsDto {
+  harborHost: string;
+  harborPort: number;
+  mount: string;
+  username: string;
+  sourcePassword: string;
+}
+
+export interface LiveStatusDto {
+  active: boolean;
+  startedAt: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Arcana Guardian — consent-scoped moderation. Reports are about incidents
+// that happened inside a room the reporter owns, never third-party
+// surveillance; reputation is aggregated only from CONFIRMED reports in
+// rooms that opted into the shared network (see GuardianSettings.sharedBlacklistOptIn).
+// ---------------------------------------------------------------------------
+
+export const GuardianReportStatusSchema = z.enum(["PENDING", "CONFIRMED", "DISMISSED"]);
+export type GuardianReportStatus = z.infer<typeof GuardianReportStatusSchema>;
+
+export interface GuardianSettingsDto {
+  roomId: string;
+  antiSpamEnabled: boolean;
+  antiRaidEnabled: boolean;
+  autoModEnabled: boolean;
+  /** Opts this room's confirmed reports into the cross-room ReputationScore aggregate. */
+  sharedBlacklistOptIn: boolean;
+}
+
+export const UpdateGuardianSettingsSchema = z
+  .object({
+    antiSpamEnabled: z.boolean(),
+    antiRaidEnabled: z.boolean(),
+    autoModEnabled: z.boolean(),
+    sharedBlacklistOptIn: z.boolean(),
+  })
+  .partial();
+export type UpdateGuardianSettingsDto = z.infer<typeof UpdateGuardianSettingsSchema>;
+
+export interface GuardianReportDto {
+  id: string;
+  roomId: string;
+  subjectIdentifier: string;
+  category: GuardianReportCategory;
+  description: string;
+  evidenceUrl: string | null;
+  status: GuardianReportStatus;
+  reviewedByUsername: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
+export const CreateGuardianReportSchema = z.object({
+  subjectIdentifier: z.string().min(1).max(200),
+  category: GuardianReportCategorySchema,
+  description: z.string().min(10).max(2000),
+  evidenceUrl: z.string().url().optional(),
+});
+export type CreateGuardianReportDto = z.infer<typeof CreateGuardianReportSchema>;
+
+export const ReviewGuardianReportSchema = z.object({
+  status: z.enum(["CONFIRMED", "DISMISSED"]),
+});
+export type ReviewGuardianReportDto = z.infer<typeof ReviewGuardianReportSchema>;
+
+export interface ReputationScoreDto {
+  subjectIdentifier: string;
+  score: number;
+  confirmedReports: number;
+}
 
 // ---------------------------------------------------------------------------
 // Pagination

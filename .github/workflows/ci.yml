@@ -32,9 +32,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` here — pnpm/action-setup@v4 reads it from package.json's
+      # own "packageManager" field, and specifying both throws
+      # ERR_PNPM_BAD_PM_VERSION ("Multiple versions of pnpm specified").
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:

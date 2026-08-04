@@ -36,15 +36,29 @@ TMP_FILE=$(mktemp)
 def next_${VAR}() =
   url = string.trim(process.read("/app/next-track.sh ${ROOM_ID}"))
   if url == "" then
-    request.create("invalid://no-track-available")
+    null()
   else
     request.create(url)
   end
 end
-queue_${VAR} = request.dynamic(next_${VAR})
+# retry_delay: without it, request.dynamic defaults to polling next_${VAR}
+# (and therefore next-track.sh -> the API) up to 10x/sec — confirmed against
+# a real running instance, not just read from docs. 4s keeps API load sane
+# per active room while still picking up a freshly queued track quickly.
+queue_${VAR} = request.dynamic(retry_delay=4., next_${VAR})
+# A room owner's own live mic/DJ broadcast — checked per *connection attempt*
+# only (not polled like next_${VAR}), so this never hits the hammering bug
+# fixed above. auth calls out to the API on every harbor connect; the
+# session password is short-lived and rotates per LiveSession, never reused
+# from Icecast's own AutoDJ source password.
+def live_auth_${VAR}(login) =
+  string.trim(process.read("/app/check-live-auth.sh ${ROOM_ID} " ^ login.password)) == "ok"
+end
+live_${VAR} = input.harbor("live-${STREAM_KEY}", port=${LIQUIDSOAP_HARBOR_PORT}, auth=live_auth_${VAR})
 # fallback to silence instead of dropping the mount when a room has
 # nothing uploaded yet (e.g. right after binding, before the first track).
-src_${VAR} = fallback(track_sensitive=false, [queue_${VAR}, blank()])
+# Live mic/DJ takes priority over AutoDJ whenever it's actually connected.
+src_${VAR} = fallback(track_sensitive=false, [live_${VAR}, queue_${VAR}, blank()])
 output.icecast(%mp3(bitrate=128),
   host="localhost", port=${ICECAST_PORT},
   password="${ICECAST_SOURCE_PASSWORD}",

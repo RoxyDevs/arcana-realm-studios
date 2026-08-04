@@ -35,6 +35,13 @@ export class BillingController {
     return this.billingService.getWalletBalance(user.id);
   }
 
+  @Get("subscription")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Returns the current user's subscription tier (FREE if none active)" })
+  getMySubscription(@CurrentUser() user: AuthenticatedUserDto): Promise<SubscriptionStatusDto> {
+    return this.billingService.getMySubscription(user.id);
+  }
+
   @Post("checkout/credits")
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Creates a Stripe Checkout session to purchase credits" })

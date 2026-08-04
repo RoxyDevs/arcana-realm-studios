@@ -39,6 +39,13 @@ export interface AppConfig {
      * loudly, per the object-storage/IMVU-verifier pattern elsewhere).
      */
     internalToken: string;
+    /**
+     * Port Liquidsoap's shared input.harbor listener runs on (one listener,
+     * one mountpoint per live-broadcasting room, same as Icecast itself) —
+     * see apps/streaming/generate-liquidsoap.sh. Must match that service's
+     * LIQUIDSOAP_HARBOR_PORT.
+     */
+    harborPort: number;
   };
   objectStorage: {
     /** Cloudflare R2 — S3-compatible. Empty until configured; upload endpoints fail loudly rather than silently no-op. */
@@ -82,6 +89,7 @@ export default (): AppConfig => ({
   streaming: {
     baseUrl: process.env.STREAMING_BASE_URL ?? "https://stream.arcanarealmstudios.com",
     internalToken: process.env.STREAMING_INTERNAL_TOKEN ?? "",
+    harborPort: parseInt(process.env.STREAMING_HARBOR_PORT ?? "8006", 10),
   },
   objectStorage: {
     accountId: process.env.R2_ACCOUNT_ID ?? "",

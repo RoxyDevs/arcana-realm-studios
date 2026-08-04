@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import {
   BOT_LICENSE_PLANS,
   BULK_LICENSE_DISCOUNT,
+  SUBSCRIPTION_PLANS,
   type BotLicensePlan,
   type BotLicenseStatusDto,
   type BulkLicensePurchaseResultDto,
@@ -13,6 +14,10 @@ import {
   BOT_LICENSE_REPOSITORY,
   type IBotLicenseRepository,
 } from "../domain/bot-license-repository.interface";
+import {
+  SUBSCRIPTION_REPOSITORY,
+  type ISubscriptionRepository,
+} from "../domain/subscription-repository.interface";
 
 @Injectable()
 export class BotLicenseService {
@@ -21,7 +26,15 @@ export class BotLicenseService {
     @Inject(WALLET_REPOSITORY) private readonly wallets: IWalletRepository,
     @Inject(BOT_LICENSE_REPOSITORY) private readonly licenses: IBotLicenseRepository,
     @Inject(AUDIT_LOGGER) private readonly auditLogger: IAuditLogger,
+    @Inject(SUBSCRIPTION_REPOSITORY) private readonly subscriptions: ISubscriptionRepository,
   ) {}
+
+  /** PLUS/PREMIUM subscribers get a flat percent off every credit-funded bot-license purchase — 0 for FREE/no subscription. */
+  private async getCreditDiscountPercent(userId: string): Promise<number> {
+    const active = await this.subscriptions.findActiveByUserId(userId);
+    if (!active || active.tier === "FREE") return 0;
+    return SUBSCRIPTION_PLANS[active.tier as "PLUS" | "PREMIUM"].creditDiscountPercent;
+  }
 
   /** The date a new grant should count from: now, unless the room already has unexpired time left. */
   private async resolveStartDate(roomId: string): Promise<Date> {
@@ -50,21 +63,23 @@ export class BotLicenseService {
     await this.roomAccess.assertOwner(roomId, userId);
 
     const planDef = BOT_LICENSE_PLANS[plan];
+    const discountPercent = await this.getCreditDiscountPercent(userId);
+    const cost = Math.round(planDef.credits * (1 - discountPercent / 100));
     const startsAt = await this.resolveStartDate(roomId);
     const expiresAt = new Date(startsAt.getTime() + planDef.days * 86_400_000);
 
     await this.wallets.applyTransaction({
       userId,
-      amount: -planDef.credits,
+      amount: -cost,
       type: "CONSUMPTION",
-      metadata: { roomId, plan, reason: "bot_license_purchase" },
+      metadata: { roomId, plan, reason: "bot_license_purchase", discountPercent },
     });
 
     const license = await this.licenses.create({
       roomId,
       plan,
       source: "CREDIT_PURCHASE",
-      creditsCost: planDef.credits,
+      creditsCost: cost,
       startsAt,
       expiresAt,
       grantedById: null,
@@ -91,17 +106,26 @@ export class BotLicenseService {
 
     const planDef = BOT_LICENSE_PLANS[plan];
     const listTotal = planDef.credits * uniqueRoomIds.length;
-    const discountApplied = uniqueRoomIds.length >= BULK_LICENSE_DISCOUNT.minRooms;
-    const total = discountApplied
-      ? Math.round(listTotal * (1 - BULK_LICENSE_DISCOUNT.percentOff / 100))
-      : listTotal;
+    const bulkDiscountApplied = uniqueRoomIds.length >= BULK_LICENSE_DISCOUNT.minRooms;
+    const subscriberDiscountPercent = await this.getCreditDiscountPercent(userId);
+    const combinedMultiplier =
+      (bulkDiscountApplied ? 1 - BULK_LICENSE_DISCOUNT.percentOff / 100 : 1) *
+      (1 - subscriberDiscountPercent / 100);
+    const total = Math.round(listTotal * combinedMultiplier);
     const perRoomCost = Math.round(total / uniqueRoomIds.length);
+    const discountApplied = bulkDiscountApplied || subscriberDiscountPercent > 0;
 
     await this.wallets.applyTransaction({
       userId,
       amount: -total,
       type: "CONSUMPTION",
-      metadata: { roomIds: uniqueRoomIds, plan, reason: "bulk_bot_license_purchase", discountApplied },
+      metadata: {
+        roomIds: uniqueRoomIds,
+        plan,
+        reason: "bulk_bot_license_purchase",
+        bulkDiscountApplied,
+        subscriberDiscountPercent,
+      },
     });
 
     const rooms: BotLicenseStatusDto[] = [];

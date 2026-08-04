@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { BadRequestException, Inject, Injectable } from "@nestjs/common";
-import type { TrackDto, QueueItemDto } from "@arcana/types";
+import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { ALLOWED_AUDIO_UPLOAD_MIME_TYPES, type TrackDto, type QueueItemDto } from "@arcana/types";
 import type { Track } from "@arcana/database";
 import {
   TRACK_REPOSITORY,
@@ -12,16 +12,6 @@ import { ROOM_ACCESS_CHECKER, type IRoomAccessChecker } from "../../../common/do
 import { OBJECT_STORAGE, type IObjectStorage } from "../../../common/domain/object-storage.interface";
 import type { EnqueueTrackDto } from "@arcana/types";
 import { TrackProviderRegistry } from "./track-provider.registry";
-
-const ALLOWED_AUDIO_MIME_TYPES: Record<string, string> = {
-  "audio/mpeg": "mp3",
-  "audio/mp3": "mp3",
-  "audio/wav": "wav",
-  "audio/x-wav": "wav",
-  "audio/ogg": "ogg",
-  "audio/aac": "aac",
-  "audio/mp4": "m4a",
-};
 
 export interface UploadTrackParams {
   title: string;
@@ -79,6 +69,35 @@ export class MusicService {
     return toQueueItemDto(item);
   }
 
+  /**
+   * The shared library: every room owner's uploaded tracks, searchable by
+   * anyone signed in — not just the room that uploaded them. Each result
+   * already carries its uploader's rights attestation from upload time, so
+   * playing it in a different room is the same trust boundary as playing it
+   * in the uploader's own room, just discoverable instead of siloed.
+   */
+  async searchLibrary(query: string): Promise<TrackDto[]> {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      throw new BadRequestException("Search query must be at least 2 characters");
+    }
+    const tracks = await this.tracks.search(trimmed, 25);
+    return tracks.map(toTrackDto);
+  }
+
+  /** Adds an existing library track (yours or another room's upload) to this room's queue. */
+  async enqueueExisting(roomId: string, userId: string, trackId: string): Promise<QueueItemDto> {
+    await this.roomAccess.assertOwner(roomId, userId);
+
+    const track = await this.tracks.findById(trackId);
+    if (!track || track.source !== "UPLOAD" || !track.fileUrl) {
+      throw new NotFoundException("Track not found in the library");
+    }
+
+    const item = await this.queue.enqueue({ roomId, trackId: track.id, requestedById: userId });
+    return toQueueItemDto(item);
+  }
+
   /** AutoDJ hook: advances the queue and returns the track that should start playing next. */
   async playNext(roomId: string, userId: string): Promise<QueueItemDto | null> {
     await this.roomAccess.assertOwner(roomId, userId);
@@ -108,10 +127,10 @@ export class MusicService {
     if (!file) {
       throw new BadRequestException("No file uploaded");
     }
-    const extension = ALLOWED_AUDIO_MIME_TYPES[file.mimetype];
+    const extension = ALLOWED_AUDIO_UPLOAD_MIME_TYPES[file.mimetype];
     if (!extension) {
       throw new BadRequestException(
-        `Unsupported file type "${file.mimetype}" — allowed: ${Object.keys(ALLOWED_AUDIO_MIME_TYPES).join(", ")}`,
+        `Unsupported file type "${file.mimetype}" — allowed: ${Object.keys(ALLOWED_AUDIO_UPLOAD_MIME_TYPES).join(", ")}`,
       );
     }
 

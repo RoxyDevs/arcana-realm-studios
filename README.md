@@ -77,10 +77,10 @@ Implementation status, module by module:
 |---|---|---|
 | **Auth** | ✅ | Discord OAuth, JWT access + rotating opaque refresh tokens, RBAC (`@Roles`) |
 | **Billing** | ✅ | Credit wallet, Stripe Checkout (one-time credits + Plus/Premium subscriptions), webhook handling, time-boxed bot licenses (1 day/week/month/3 months/year), audited manual wallet adjustments |
-| **Music** | ✅ | Per-room queue, Spotify/YouTube track resolution, AutoDJ `playNext` hook |
+| **Music** | ✅ | Per-room queue, cross-room shared library search, Spotify/YouTube track resolution, AutoDJ `playNext` hook, live mic/DJ broadcast (preempts AutoDJ via Icecast-compatible source apps) |
 | **Rooms** | ✅ | Bind any IMVU room by URL/ID, verify ownership via a token placed in the room's description, get back the room's Icecast/HLS stream URL once verified + bot-licensed |
-| **Streaming** | 🔜 built, untested | `apps/streaming/` — Icecast + Liquidsoap AutoDJ broadcasting each room's upload queue as MP3, polling `apps/api`'s `/internal/streaming/*` for what's active/next. Built and reasoned through against IMVU's documented radio-streaming requirements, but not run — no Docker daemon in the dev sandbox this was built in |
-| Guardian | 🔜 | Schema in place (`GuardianReport`, `ReputationScore`, `GuardianSettings`) — service layer not yet built |
+| **Streaming** | 🔜 verified outside Docker | `apps/streaming/` — Icecast + Liquidsoap AutoDJ broadcasting each room's upload queue as MP3, polling `apps/api`'s `/internal/streaming/*` for what's active/next. Run end-to-end against a real `apps/api` + Postgres (real Icecast/Liquidsoap, real seeded room/track, a real listener confirming genuine MP3 bytes) — see `apps/streaming/README.md`. Docker itself still unbuilt: every sandbox this was developed in blocks Docker Hub's image CDN |
+| **Guardian** | ✅ | Service layer on `GuardianReport`/`ReputationScore`/`GuardianSettings`: room-owner-scoped settings + incident reports, platform-role-gated review, opt-in cross-room reputation aggregation |
 | Intelligence | 🔜 | `Room` model in place — analytics/heatmaps not yet built |
 | Studio | 🔜 | Not started |
 
@@ -174,6 +174,17 @@ source. Internal-only, not part of the public API surface: `GET
 — polled by `apps/streaming`'s Liquidsoap process, authenticated via a shared
 `STREAMING_INTERNAL_TOKEN` header instead of a user JWT (see `InternalTokenGuard`).
 
+Guardian: `GET`/`PATCH /rooms/:roomId/guardian/settings` and `POST`/`GET
+/rooms/:roomId/guardian/reports` are room-owner scoped, same as Music/Bot Licenses —
+filing a report is about an incident in *your own* room, never third-party tracking.
+`POST /guardian/reports/:reportId/review` is deliberately **not** room-scoped: it's
+gated to platform `OWNER`/`ADMIN` roles (`@Roles`, same pattern as the bot-license
+manual grant), because a room owner filing a report can't also be the one who confirms
+it — `CONFIRMED` reports feed `GET /guardian/reputation/:subjectIdentifier`, a
+cross-room aggregate, so self-adjudication would be an integrity hole. A confirmed
+report only actually updates the aggregate if its room opted in
+(`GuardianSettings.sharedBlacklistOptIn`); every review is written to `AuditLog`.
+
 ## 4. Frontend
 
 Next.js 15 App Router, Tailwind, TanStack Query. Dark cyberpunk theme defined in
@@ -215,9 +226,17 @@ pnpm dev                    # runs apps/api and apps/web in parallel via Turbore
 
 ## 8. Future improvements
 
-- Build the **Arcana Guardian** service layer (behavior analysis, opt-in reputation
-  aggregation, ban-evasion detection) on top of the existing schema.
+- Arcana Guardian's report/reputation system is deterministic by design (see the
+  External Integrations Policy — there's no confirmed IMVU chat/activity feed to
+  analyze). AI-assisted analysis (e.g. classifying report descriptions/evidence) is a
+  future addition behind its own adapter once a real data source exists, plus
+  ban-evasion detection once there's a signal to detect it from.
 - Build **Arcana Intelligence** (room analytics, heatmaps) and a proper Room CRUD +
-  membership model (today `IRoomAccessChecker` only checks ownership).
+  membership model (today `IRoomAccessChecker` only checks ownership) — Guardian
+  Settings/Reports currently reuse the same room-owner-only scoping, so a MODERATOR
+  role for a room can't manage Guardian until that model exists.
 - Add BullMQ workers for AutoDJ playback scheduling and async Stripe webhook retries.
 - Add Playwright e2e coverage for the Discord OAuth → dashboard flow.
+- Deploy `apps/streaming` for real (Railway) to verify the Dockerfile build itself and
+  public-domain → container-port networking — the audio pipeline underneath is proven,
+  the container wrapper isn't yet.
