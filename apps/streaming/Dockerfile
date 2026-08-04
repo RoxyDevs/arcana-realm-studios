@@ -3,10 +3,6 @@
 # field plays. Separate service from the API on purpose: this is a
 # long-running audio process, not a request/response HTTP API.
 #
-# Built with the repo root as build context (not apps/streaming) — same
-# convention as apps/api/Dockerfile, so on Railway: Root Directory stays
-# unset/".", Dockerfile Path is set to "apps/streaming/Dockerfile".
-#
 # NOTE: built and iterated against Debian's packaged Icecast2/Liquidsoap
 # versions. The Icecast/Liquidsoap/queue pipeline (including the live
 # harbor input added here) has been run end-to-end against a real apps/api —
@@ -30,11 +26,11 @@ RUN apt-get update -y && \
 # we run it ourselves from the entrypoint instead.
 RUN sed -i 's/ENABLE=true/ENABLE=false/' /etc/default/icecastd || true
 
-COPY apps/streaming/icecast.xml.template /app/icecast.xml.template
-COPY apps/streaming/generate-liquidsoap.sh /app/generate-liquidsoap.sh
-COPY apps/streaming/next-track.sh /app/next-track.sh
-COPY apps/streaming/check-live-auth.sh /app/check-live-auth.sh
-COPY apps/streaming/entrypoint.sh /app/entrypoint.sh
+COPY icecast.xml.template /app/icecast.xml.template
+COPY generate-liquidsoap.sh /app/generate-liquidsoap.sh
+COPY next-track.sh /app/next-track.sh
+COPY check-live-auth.sh /app/check-live-auth.sh
+COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/generate-liquidsoap.sh /app/next-track.sh /app/check-live-auth.sh /app/entrypoint.sh
 
 ENV ICECAST_PORT=8000
