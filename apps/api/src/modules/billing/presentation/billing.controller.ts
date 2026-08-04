@@ -68,9 +68,17 @@ export class BillingController {
   createSubscriptionCheckout(
     @CurrentUser() user: AuthenticatedUserDto,
     @Body() dto: CreateSubscriptionCheckoutDto,
+    @Req() req: Request,
   ): Promise<CheckoutSessionResult> {
     if (!user.email) {
       throw new BadRequestException("A verified email is required to subscribe");
+    }
+    // The 3-day-trial anti-abuse check keys off this IP (see
+    // BillingService.createSubscriptionCheckout) — failing closed here
+    // instead of falling back to "unknown" means a proxy misconfiguration
+    // shows up as a 400, not as a silently unenforced trial limit.
+    if (!req.ip) {
+      throw new BadRequestException("Couldn't resolve your request's IP address — try again");
     }
     return this.billingService.createSubscriptionCheckout({
       userId: user.id,
@@ -78,6 +86,7 @@ export class BillingController {
       tier: dto.tier,
       successUrl: dto.successUrl,
       cancelUrl: dto.cancelUrl,
+      ipAddress: req.ip,
     });
   }
 

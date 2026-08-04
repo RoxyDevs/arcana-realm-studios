@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import type { SubscriptionTier, WalletBalanceDto, SubscriptionStatusDto } from "@arcana/types";
+import { SUBSCRIPTION_TRIAL_DAYS, type SubscriptionTier, type WalletBalanceDto, type SubscriptionStatusDto } from "@arcana/types";
 import { AUDIT_LOGGER, type IAuditLogger } from "../../../common/domain/audit-logger.interface";
 import { PAYMENT_PROVIDER, type IPaymentProvider } from "../domain/payment-provider.interface";
 import { WALLET_REPOSITORY, type IWalletRepository } from "../domain/wallet-repository.interface";
@@ -7,6 +7,10 @@ import {
   SUBSCRIPTION_REPOSITORY,
   type ISubscriptionRepository,
 } from "../domain/subscription-repository.interface";
+import {
+  TRIAL_CLAIM_REPOSITORY,
+  type ITrialClaimRepository,
+} from "../domain/trial-claim-repository.interface";
 
 const TIER_PRICE_IDS: Record<"PLUS" | "PREMIUM", string | undefined> = {
   PLUS: process.env.STRIPE_PRICE_PLUS_MONTHLY,
@@ -21,6 +25,7 @@ export class BillingService {
     @Inject(PAYMENT_PROVIDER) private readonly paymentProvider: IPaymentProvider,
     @Inject(WALLET_REPOSITORY) private readonly wallets: IWalletRepository,
     @Inject(SUBSCRIPTION_REPOSITORY) private readonly subscriptions: ISubscriptionRepository,
+    @Inject(TRIAL_CLAIM_REPOSITORY) private readonly trialClaims: ITrialClaimRepository,
     @Inject(AUDIT_LOGGER) private readonly auditLogger: IAuditLogger,
   ) {}
 
@@ -36,12 +41,14 @@ export class BillingService {
   async getMySubscription(userId: string): Promise<SubscriptionStatusDto> {
     const active = await this.subscriptions.findActiveByUserId(userId);
     if (!active) {
-      return { tier: "FREE", status: "ACTIVE", currentPeriodEnd: null };
+      return { tier: "FREE", status: "ACTIVE", currentPeriodEnd: null, trialEndsAt: null };
     }
+    const stillTrialing = active.trialEndsAt && active.trialEndsAt.getTime() > Date.now();
     return {
       tier: active.tier,
       status: active.status,
       currentPeriodEnd: active.currentPeriodEnd?.toISOString() ?? null,
+      trialEndsAt: stillTrialing ? active.trialEndsAt!.toISOString() : null,
     };
   }
 
@@ -104,6 +111,8 @@ export class BillingService {
       tier: subscription.tier,
       status: subscription.status,
       currentPeriodEnd: subscription.currentPeriodEnd?.toISOString() ?? null,
+      // Complimentary grants never go through Stripe, so there's no trial concept here.
+      trialEndsAt: null,
     };
   }
 
@@ -125,16 +134,40 @@ export class BillingService {
     });
   }
 
+  /**
+   * `ipAddress` is required (not optional) on purpose — see BillingController,
+   * which fails closed if it can't resolve a real client IP rather than
+   * silently skipping the anti-abuse check.
+   */
   async createSubscriptionCheckout(params: {
     userId: string;
     email: string;
     tier: "PLUS" | "PREMIUM";
     successUrl: string;
     cancelUrl: string;
+    ipAddress: string;
   }) {
     const priceId = TIER_PRICE_IDS[params.tier];
     if (!priceId) {
       throw new BadRequestException(`No Stripe price configured for tier ${params.tier}`);
+    }
+
+    const alreadyOnPaidTier = await this.subscriptions.findActiveByUserId(params.userId);
+    const alreadyClaimedTrial = await this.trialClaims.hasClaimed({
+      userId: params.userId,
+      ipAddress: params.ipAddress,
+    });
+    const eligibleForTrial = !alreadyOnPaidTier && !alreadyClaimedTrial;
+
+    if (eligibleForTrial) {
+      // Recorded up front rather than on webhook completion: a concurrent
+      // checkout attempt from the same IP (or account) must be blocked
+      // immediately, not just after the first one finishes paying.
+      await this.trialClaims.record({
+        userId: params.userId,
+        ipAddress: params.ipAddress,
+        tier: params.tier,
+      });
     }
 
     return this.paymentProvider.createCheckoutSession({
@@ -144,11 +177,12 @@ export class BillingService {
       successUrl: params.successUrl,
       cancelUrl: params.cancelUrl,
       metadata: { userId: params.userId, tier: params.tier },
+      trialPeriodDays: eligibleForTrial ? SUBSCRIPTION_TRIAL_DAYS : undefined,
     });
   }
 
   async handleWebhook(rawBody: Buffer, signature: string): Promise<void> {
-    const event = this.paymentProvider.parseWebhookEvent(rawBody, signature);
+    const event = await this.paymentProvider.parseWebhookEvent(rawBody, signature);
 
     if (!event.userId) {
       this.logger.warn(`Webhook ${event.type} received without a resolvable userId — ignoring`);
@@ -173,6 +207,7 @@ export class BillingService {
             tier: event.tier,
             status: "ACTIVE",
             currentPeriodEnd: event.currentPeriodEnd,
+            trialEndsAt: event.trialEndsAt,
           });
         }
         break;

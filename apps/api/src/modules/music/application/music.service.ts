@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { ALLOWED_AUDIO_UPLOAD_MIME_TYPES, type TrackDto, type QueueItemDto } from "@arcana/types";
+import { ALLOWED_AUDIO_UPLOAD_MIME_TYPES, type TrackDto, type QueueItemDto, type NowPlayingDto } from "@arcana/types";
 import type { Track } from "@arcana/database";
 import {
   TRACK_REPOSITORY,
@@ -81,8 +81,20 @@ export class MusicService {
     if (trimmed.length < 2) {
       throw new BadRequestException("Search query must be at least 2 characters");
     }
-    const tracks = await this.tracks.search(trimmed, 25);
-    return tracks.map(toTrackDto);
+
+    const [libraryTracks, jamendoMatches] = await Promise.all([
+      this.tracks.search(trimmed, 25),
+      this.trackProviders.get("JAMENDO").search(trimmed, 10),
+    ]);
+
+    // Jamendo hits need a stable Track row (findOrCreate is idempotent on
+    // source+externalId) before they can be added to a queue by id — the
+    // same resolve-then-persist step enqueueExisting relies on elsewhere.
+    const jamendoTracks = await Promise.all(
+      jamendoMatches.map((metadata) => this.tracks.findOrCreate(metadata)),
+    );
+
+    return [...libraryTracks, ...jamendoTracks].map(toTrackDto);
   }
 
   /** Adds an existing library track (yours or another room's upload) to this room's queue. */
@@ -108,6 +120,24 @@ export class MusicService {
   async removeFromQueue(roomId: string, userId: string, queueItemId: string): Promise<void> {
     await this.roomAccess.assertOwner(roomId, userId);
     await this.queue.remove(queueItemId, roomId);
+  }
+
+  async moveInQueue(
+    roomId: string,
+    userId: string,
+    queueItemId: string,
+    direction: "up" | "down",
+  ): Promise<void> {
+    await this.roomAccess.assertOwner(roomId, userId);
+    await this.queue.move(queueItemId, roomId, direction);
+  }
+
+  /** Best-effort "now playing" — the track AutoDJ most recently pulled off the queue for this room. */
+  async getNowPlaying(roomId: string, userId: string): Promise<NowPlayingDto | null> {
+    await this.roomAccess.assertOwner(roomId, userId);
+    const item = await this.queue.getMostRecentlyPlayed(roomId);
+    if (!item || !item.playedAt) return null;
+    return { track: toTrackDto(item.track), startedAt: item.playedAt.toISOString() };
   }
 
   /**

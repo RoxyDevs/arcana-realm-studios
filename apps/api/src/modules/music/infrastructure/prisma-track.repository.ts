@@ -44,7 +44,10 @@ export class PrismaTrackRepository implements ITrackRepository {
   search(query: string, limit: number): Promise<Track[]> {
     return this.prisma.track.findMany({
       where: {
-        source: "UPLOAD",
+        // UPLOAD (room owners' own audio) and JAMENDO (CC-licensed catalog)
+        // are the only two sources with a real fileUrl — SPOTIFY/YOUTUBE
+        // rows are metadata-only and would 404 if AutoDJ tried to play them.
+        source: { in: ["UPLOAD", "JAMENDO"] },
         fileUrl: { not: null },
         OR: [
           { title: { contains: query, mode: "insensitive" } },

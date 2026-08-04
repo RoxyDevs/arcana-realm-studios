@@ -43,6 +43,7 @@ model User {
   auditLogs     AuditLog[]
   grantedLicenses BotLicense[]     @relation("LicenseGrantedBy")
   liveSessions  LiveSession[]
+  roomMemberships RoomMember[]
 
   @@map("users")
 }
@@ -114,9 +115,31 @@ model Room {
   guardianSettings GuardianSettings?
   guardianReports  GuardianReport[]
   liveSessions     LiveSession[]
+  members          RoomMember[]
 
   @@index([ownerId])
   @@map("rooms")
+}
+
+// Self-service roster: anyone with an Arcana account who has the room's link
+// can tag themselves with a free-text role for that room — roleplay
+// communities (families, clans, fantasy kingdoms) use this for things like
+// "Femenino"/"Masculino" or a custom in-character title. Distinct from
+// Room.ownerId (who *administers* the room on Arcana) — a member here is
+// just someone who showed up and set a tag, no ownership implied.
+model RoomMember {
+  id        String   @id @default(cuid())
+  roomId    String
+  userId    String
+  roleTag   String?
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@map("room_members")
 }
 
 // ---------------------------------------------------------------------------
@@ -205,6 +228,8 @@ model Subscription {
   stripeSubscriptionId String?            @unique
   currentPeriodEnd     DateTime?
   cancelAtPeriodEnd    Boolean            @default(false)
+  // Set only when this subscription started via a Stripe trial — null once it converts to a normal paid period or if no trial was granted.
+  trialEndsAt          DateTime?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
@@ -212,6 +237,24 @@ model Subscription {
 
   @@index([userId])
   @@map("subscriptions")
+}
+
+// One row per successful trial grant, keyed by both the granting user and the
+// IP address the checkout was created from. A card is still required by
+// Stripe for every trial (see BillingService.createSubscriptionCheckout), so
+// this exists purely to stop the *same person* from cycling Discord accounts
+// to keep re-claiming the 3-day trial — the checkout flow refuses a second
+// trial from either a userId or an ipAddress that already has a row here.
+model TrialClaim {
+  id        String   @id @default(cuid())
+  userId    String
+  ipAddress String
+  tier      SubscriptionTier
+  claimedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([ipAddress])
+  @@map("trial_claims")
 }
 
 // Time-boxed bot access for a Room — the "1 day / 1 week / 1 month / 3 months /
@@ -257,6 +300,12 @@ enum TrackSource {
   SPOTIFY
   YOUTUBE
   UPLOAD
+  // Creative-Commons-licensed catalog from Jamendo's public API — unlike
+  // SPOTIFY/YOUTUBE (metadata-only, never streamed, see Track.fileUrl below),
+  // JAMENDO rows *do* get a real fileUrl: Jamendo's own licensing explicitly
+  // permits streaming/downloading the audio, so this is the one external
+  // source AutoDJ is allowed to actually play alongside room uploads.
+  JAMENDO
 }
 
 model Track {

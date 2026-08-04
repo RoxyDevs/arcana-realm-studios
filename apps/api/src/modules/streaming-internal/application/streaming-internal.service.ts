@@ -63,14 +63,14 @@ export class StreamingInternalService {
 
       await this.prisma.musicQueueItem.update({ where: { id: item.id }, data: { playedAt: new Date() } });
 
-      if (item.track.source === "UPLOAD" && item.track.fileUrl) {
+      if ((item.track.source === "UPLOAD" || item.track.source === "JAMENDO") && item.track.fileUrl) {
         return item.track.fileUrl;
       }
       // Metadata-only entry (Spotify/YouTube) — can't stream it, try the next one.
     }
 
     const history = await this.prisma.musicQueueItem.findMany({
-      where: { roomId, track: { source: "UPLOAD" } },
+      where: { roomId, track: { source: { in: ["UPLOAD", "JAMENDO"] } } },
       include: { track: true },
       distinct: ["trackId"],
     });

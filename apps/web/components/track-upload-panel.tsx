@@ -84,6 +84,23 @@ export function TrackUploadPanel() {
     onError: (err) => setError(err instanceof ApiError ? err.message : "Couldn't add that track to the queue"),
   });
 
+  const moveQueueItem = useMutation({
+    mutationFn: ({ queueItemId, direction }: { queueItemId: string; direction: "up" | "down" }) =>
+      apiFetch<void>(`/rooms/${roomId}/queue/${queueItemId}/move`, {
+        method: "POST",
+        body: JSON.stringify({ direction }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["music", "queue", roomId] }),
+    onError: (err) => setError(err instanceof ApiError ? err.message : "Couldn't reorder the queue"),
+  });
+
+  const removeQueueItem = useMutation({
+    mutationFn: (queueItemId: string) =>
+      apiFetch<void>(`/rooms/${roomId}/queue/${queueItemId}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["music", "queue", roomId] }),
+    onError: (err) => setError(err instanceof ApiError ? err.message : "Couldn't remove that track"),
+  });
+
   const upload = useMutation({
     mutationFn: () => {
       const body = new FormData();
@@ -272,13 +289,44 @@ export function TrackUploadPanel() {
             Queue
           </h3>
           <div className="mt-2 space-y-2">
-            {queue?.map((item) => (
+            {queue?.map((item, index) => (
               <div
                 key={item.id}
-                className="rounded-lg border border-arcana-border bg-arcana-bg p-3 text-base text-arcana-text"
+                className="flex items-center justify-between gap-3 rounded-lg border border-arcana-border bg-arcana-bg p-3 text-base text-arcana-text"
               >
-                {item.position}. {item.track.title}
-                {item.track.artist && ` — ${item.track.artist}`}
+                <span>
+                  {item.position}. {item.track.title}
+                  {item.track.artist && ` — ${item.track.artist}`}
+                </span>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={index === 0 || moveQueueItem.isPending}
+                    onClick={() => moveQueueItem.mutate({ queueItemId: item.id, direction: "up" })}
+                    aria-label="Move up"
+                    className="rounded-md border border-arcana-border px-2 py-1 text-sm text-arcana-text transition-all hover:border-arcana-cyan/60 disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!queue || index === queue.length - 1 || moveQueueItem.isPending}
+                    onClick={() => moveQueueItem.mutate({ queueItemId: item.id, direction: "down" })}
+                    aria-label="Move down"
+                    className="rounded-md border border-arcana-border px-2 py-1 text-sm text-arcana-text transition-all hover:border-arcana-cyan/60 disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
+                    disabled={removeQueueItem.isPending}
+                    onClick={() => removeQueueItem.mutate(item.id)}
+                    aria-label="Remove from queue"
+                    className="rounded-md border border-arcana-border px-2 py-1 text-sm text-red-400 transition-all hover:border-red-400/60 disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             ))}
             {queue?.length === 0 && (

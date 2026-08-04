@@ -12,6 +12,8 @@ import { BotLicenseController } from "./presentation/bot-license.controller";
 import { BulkLicenseController } from "./presentation/bulk-license.controller";
 import { BOT_LICENSE_REPOSITORY } from "./domain/bot-license-repository.interface";
 import { PrismaBotLicenseRepository } from "./infrastructure/prisma-bot-license.repository";
+import { TRIAL_CLAIM_REPOSITORY } from "./domain/trial-claim-repository.interface";
+import { PrismaTrialClaimRepository } from "./infrastructure/prisma-trial-claim.repository";
 
 @Module({
   controllers: [BillingController, BotLicenseController, BulkLicenseController],
@@ -22,6 +24,7 @@ import { PrismaBotLicenseRepository } from "./infrastructure/prisma-bot-license.
     { provide: WALLET_REPOSITORY, useClass: PrismaWalletRepository },
     { provide: SUBSCRIPTION_REPOSITORY, useClass: PrismaSubscriptionRepository },
     { provide: BOT_LICENSE_REPOSITORY, useClass: PrismaBotLicenseRepository },
+    { provide: TRIAL_CLAIM_REPOSITORY, useClass: PrismaTrialClaimRepository },
   ],
 })
 export class BillingModule {}

@@ -26,6 +26,7 @@ export class PrismaSubscriptionRepository implements ISubscriptionRepository {
     tier: SubscriptionTier;
     status: SubscriptionStatus;
     currentPeriodEnd: Date | null;
+    trialEndsAt: Date | null;
   }): Promise<Subscription> {
     return this.prisma.subscription.upsert({
       where: { stripeSubscriptionId: params.stripeSubscriptionId },
@@ -36,11 +37,13 @@ export class PrismaSubscriptionRepository implements ISubscriptionRepository {
         tier: params.tier,
         status: params.status,
         currentPeriodEnd: params.currentPeriodEnd,
+        trialEndsAt: params.trialEndsAt,
       },
       update: {
         tier: params.tier,
         status: params.status,
         currentPeriodEnd: params.currentPeriodEnd,
+        trialEndsAt: params.trialEndsAt,
       },
     });
   }

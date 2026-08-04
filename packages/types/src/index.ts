@@ -11,7 +11,7 @@ export type Role = z.infer<typeof RoleSchema>;
 export const SubscriptionTierSchema = z.enum(["FREE", "PLUS", "PREMIUM"]);
 export type SubscriptionTier = z.infer<typeof SubscriptionTierSchema>;
 
-export const TrackSourceSchema = z.enum(["SPOTIFY", "YOUTUBE", "UPLOAD"]);
+export const TrackSourceSchema = z.enum(["SPOTIFY", "YOUTUBE", "UPLOAD", "JAMENDO"]);
 export type TrackSource = z.infer<typeof TrackSourceSchema>;
 
 export const GuardianReportCategorySchema = z.enum([
@@ -72,6 +72,8 @@ export interface SubscriptionStatusDto {
   tier: SubscriptionTier;
   status: string;
   currentPeriodEnd: string | null;
+  /** Set only while this subscription is still inside its 3-day trial window. */
+  trialEndsAt: string | null;
 }
 
 export const GrantSubscriptionSchema = z.object({
@@ -104,6 +106,9 @@ export interface SubscriptionPlanDefinition {
   creditDiscountPercent: number;
   perks: string[];
 }
+
+/** Every paid tier starts with this trial length — a card is still required at checkout (see BillingService), it only delays the first charge. */
+export const SUBSCRIPTION_TRIAL_DAYS = 3;
 
 export const SUBSCRIPTION_PLANS: Record<"PLUS" | "PREMIUM", SubscriptionPlanDefinition> = {
   PLUS: {
@@ -195,6 +200,25 @@ export const BindRoomSchema = z.object({
 export type BindRoomDto = z.infer<typeof BindRoomSchema>;
 
 // ---------------------------------------------------------------------------
+// Room roster — self-service role tags for roleplay communities (families,
+// clans, fantasy kingdoms). Free text on purpose: "Femenino"/"Masculino" are
+// just the two examples that came up, not an enum Arcana should gatekeep.
+// ---------------------------------------------------------------------------
+
+export const SetRoomRoleSchema = z.object({
+  roleTag: z.string().trim().max(40).nullable(),
+});
+export type SetRoomRoleDto = z.infer<typeof SetRoomRoleSchema>;
+
+export interface RoomMemberDto {
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+  roleTag: string | null;
+  joinedAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // Arcana Music
 // ---------------------------------------------------------------------------
 
@@ -239,6 +263,17 @@ export const EnqueueTrackSchema = z.object({
   externalId: z.string().min(1),
 });
 export type EnqueueTrackDto = z.infer<typeof EnqueueTrackSchema>;
+
+export const MoveQueueItemSchema = z.object({
+  direction: z.enum(["up", "down"]),
+});
+export type MoveQueueItemDto = z.infer<typeof MoveQueueItemSchema>;
+
+/** What AutoDJ most recently pulled off the queue for a room — the closest thing to "now playing" without polling Icecast directly. */
+export interface NowPlayingDto {
+  track: TrackDto;
+  startedAt: string;
+}
 
 // ---------------------------------------------------------------------------
 // Live DJ / mic broadcasting — a room owner's own live audio (mic, DJ set,

@@ -10,6 +10,7 @@ import { QUEUE_REPOSITORY } from "./domain/queue-repository.interface";
 import { PrismaQueueRepository } from "./infrastructure/prisma-queue.repository";
 import { SpotifyTrackProvider } from "./infrastructure/spotify-track.provider";
 import { YoutubeTrackProvider } from "./infrastructure/youtube-track.provider";
+import { JamendoTrackProvider } from "./infrastructure/jamendo-track.provider";
 
 @Module({
   controllers: [MusicController, TracksController, LibraryController],
@@ -18,10 +19,15 @@ import { YoutubeTrackProvider } from "./infrastructure/youtube-track.provider";
     TrackProviderRegistry,
     SpotifyTrackProvider,
     YoutubeTrackProvider,
+    JamendoTrackProvider,
     {
       provide: TRACK_PROVIDERS,
-      useFactory: (spotify: SpotifyTrackProvider, youtube: YoutubeTrackProvider) => [spotify, youtube],
-      inject: [SpotifyTrackProvider, YoutubeTrackProvider],
+      useFactory: (spotify: SpotifyTrackProvider, youtube: YoutubeTrackProvider, jamendo: JamendoTrackProvider) => [
+        spotify,
+        youtube,
+        jamendo,
+      ],
+      inject: [SpotifyTrackProvider, YoutubeTrackProvider, JamendoTrackProvider],
     },
     { provide: TRACK_REPOSITORY, useClass: PrismaTrackRepository },
     { provide: QUEUE_REPOSITORY, useClass: PrismaQueueRepository },
