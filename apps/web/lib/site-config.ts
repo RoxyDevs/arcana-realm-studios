@@ -6,4 +6,6 @@
 export const MANUAL_PAYMENT_INFO = {
   paypalUrl: "https://paypal.me/roxdevit",
   imvuUsername: "@BelaRogvaldson",
+  /** IMVU's own VCoin gifting deep link (vcoin.me/<username>) — official IMVU feature, not a third-party integration. */
+  vcoinUrl: "https://vcoin.me/BelaRogvaldson",
 } as const;

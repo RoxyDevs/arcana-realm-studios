@@ -10,6 +10,7 @@ import {
 } from "@arcana/types";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { useState } from "react";
+import { ManualPaymentInfo } from "@/components/manual-payment-info";
 
 type Tier = "FREE" | "PLUS" | "PREMIUM";
 
@@ -174,6 +175,14 @@ export default function PricingPage() {
         {BULK_LICENSE_DISCOUNT.percentOff}% off, on any plan — Plus/Premium discounts stack on
         top of that.
       </p>
+
+      <div className="mx-auto mt-8 max-w-xl">
+        <p className="text-center text-sm text-arcana-textMuted">
+          No card, or want Plus/Premium right now? Pay with PayPal or VCoins below, mention
+          which plan and your username, and we'll activate it by hand.
+        </p>
+        <ManualPaymentInfo />
+      </div>
 
       <h2 className="mt-16 text-center font-display text-2xl font-bold text-arcana-text">
         How this compares
