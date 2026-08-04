@@ -8,7 +8,10 @@ set -eu
 ICECAST_RELAY_PASSWORD="${ICECAST_RELAY_PASSWORD:-$ICECAST_SOURCE_PASSWORD}"
 ICECAST_HOSTNAME="${ICECAST_HOSTNAME:-localhost}"
 ICECAST_PORT="${ICECAST_PORT:-8000}"
-export ICECAST_RELAY_PASSWORD ICECAST_HOSTNAME ICECAST_PORT
+# Shared by every room's input.harbor mountpoint — one Liquidsoap harbor
+# listener dispatches by mountpoint path, same as Icecast itself.
+LIQUIDSOAP_HARBOR_PORT="${LIQUIDSOAP_HARBOR_PORT:-8006}"
+export ICECAST_RELAY_PASSWORD ICECAST_HOSTNAME ICECAST_PORT LIQUIDSOAP_HARBOR_PORT
 
 envsubst < /app/icecast.xml.template > /app/icecast.xml
 

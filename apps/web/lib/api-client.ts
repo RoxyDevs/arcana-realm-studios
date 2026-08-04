@@ -18,11 +18,12 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     throw new ApiError(response.status, body.message ?? "Request failed");
   }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json() as Promise<T>;
+  // Some endpoints return an empty body on 200/201 rather than 204 (e.g. a
+  // void-returning POST without an explicit @HttpCode) — response.json()
+  // throws on an empty string, so check for actual content first rather
+  // than special-casing 204 alone.
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 /**

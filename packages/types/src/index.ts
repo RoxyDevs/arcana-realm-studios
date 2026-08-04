@@ -209,6 +209,25 @@ export const EnqueueTrackSchema = z.object({
 export type EnqueueTrackDto = z.infer<typeof EnqueueTrackSchema>;
 
 // ---------------------------------------------------------------------------
+// Live DJ / mic broadcasting — a room owner's own live audio (mic, DJ set,
+// podcast) preempts AutoDJ on the room's Icecast mount while connected.
+// ---------------------------------------------------------------------------
+
+/** Returned once, right when a session starts — the ingest relay/browser needs these to connect; never re-exposed afterward. */
+export interface LiveIngestCredentialsDto {
+  harborHost: string;
+  harborPort: number;
+  mount: string;
+  username: string;
+  sourcePassword: string;
+}
+
+export interface LiveStatusDto {
+  active: boolean;
+  startedAt: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Arcana Guardian — consent-scoped moderation. Reports are about incidents
 // that happened inside a room the reporter owns, never third-party
 // surveillance; reputation is aggregated only from CONFIRMED reports in

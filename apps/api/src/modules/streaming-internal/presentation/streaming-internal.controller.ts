@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
 import { ApiExcludeController } from "@nestjs/swagger";
 import { InternalTokenGuard } from "../infrastructure/internal-token.guard";
 import { StreamingInternalService, type ActiveRoomStream } from "../application/streaming-internal.service";
@@ -23,5 +23,14 @@ export class StreamingInternalController {
   async nextTrack(@Param("roomId") roomId: string): Promise<{ fileUrl: string | null }> {
     const fileUrl = await this.streamingInternalService.nextTrackUrl(roomId);
     return { fileUrl };
+  }
+
+  @Get("rooms/:roomId/live-auth")
+  async liveAuth(
+    @Param("roomId") roomId: string,
+    @Query("password") password: string,
+  ): Promise<{ authorized: boolean }> {
+    const authorized = await this.streamingInternalService.checkLiveAuth(roomId, password ?? "");
+    return { authorized };
   }
 }

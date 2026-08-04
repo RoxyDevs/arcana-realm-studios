@@ -7,6 +7,7 @@ import { BotLicensePanel } from "@/components/bot-license-panel";
 import { ManualPaymentInfo } from "@/components/manual-payment-info";
 import { RoomBindingPanel } from "@/components/room-binding-panel";
 import { TrackUploadPanel } from "@/components/track-upload-panel";
+import { LivePanel } from "@/components/live-panel";
 import { GuardianPanel } from "@/components/guardian-panel";
 import { AdminGrantPanel } from "@/components/admin-grant-panel";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -53,6 +54,8 @@ export default function DashboardPage() {
       <BotLicensePanel />
 
       <TrackUploadPanel />
+
+      <LivePanel />
 
       <GuardianPanel />
 
