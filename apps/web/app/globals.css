@@ -123,8 +123,109 @@ body {
     box-shadow: 0 0 24px rgba(0, 255, 242, 0.15);
   }
   50% {
-    box-shadow: 0 0 40px rgba(0, 255, 242, 0.3);
+    box-shadow: 0 0 40px rgba(255, 43, 214, 0.3);
   }
+}
+
+/* Cyberpunk HUD framing for the hero carousel: a CRT scanline texture, a
+   contained sweep line bouncing top-to-bottom, and corner brackets — all
+   scoped to the carousel's own box via .hero-frame, not the full viewport
+   (compare .arcana-bg-layer/.arcana-scanline, which are viewport-fixed). */
+.hero-frame {
+  position: relative;
+}
+
+.hero-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.25) 0px,
+    rgba(0, 0, 0, 0.25) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+}
+
+.hero-scan-sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hero-scan-sweep::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 35%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(0, 255, 242, 0.18) 45%,
+    rgba(255, 43, 214, 0.18) 55%,
+    transparent
+  );
+  transform: translateY(-120%);
+}
+
+@keyframes hero-sweep-move {
+  from {
+    transform: translateY(-120%);
+  }
+  to {
+    transform: translateY(320%);
+  }
+}
+
+.hero-corner {
+  position: absolute;
+  z-index: 12;
+  width: 1.5rem;
+  height: 1.5rem;
+  pointer-events: none;
+}
+
+/* Brief RGB-split/slice glitch right as the carousel changes slides — the
+   image-side echo of GlitchText's scramble-reveal, one-shot per transition
+   rather than looping. */
+@keyframes hero-glitch-slice {
+  0%,
+  100% {
+    clip-path: inset(0 0 0 0);
+    transform: translateX(0);
+    filter: none;
+  }
+  20% {
+    clip-path: inset(10% 0 60% 0);
+    transform: translateX(-4px);
+    filter: hue-rotate(20deg);
+  }
+  40% {
+    clip-path: inset(60% 0 5% 0);
+    transform: translateX(4px);
+    filter: hue-rotate(-25deg);
+  }
+  60% {
+    clip-path: inset(30% 0 40% 0);
+    transform: translateX(-2px);
+    filter: hue-rotate(15deg);
+  }
+  80% {
+    clip-path: inset(0 0 0 0);
+    transform: translateX(0);
+    filter: none;
+  }
+}
+
+.hero-glitching {
+  animation: hero-glitch-slice 0.25s steps(2, end) 1;
 }
 
 /* Sparkle ring for the FAQ bot's floating launcher button — a handful of
@@ -169,6 +270,10 @@ body {
 
   .animate-hero-breathe {
     animation: hero-breathe 5s ease-in-out infinite;
+  }
+
+  .hero-scan-sweep::after {
+    animation: hero-sweep-move 3.2s linear infinite;
   }
 
   .text-holo,

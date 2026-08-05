@@ -9,10 +9,20 @@ const SLIDES = [
 ];
 
 const INTERVAL_MS = 6000;
+const GLITCH_MS = 250;
 
-/** Crossfades between the marketing flyers — freezes on the first slide under prefers-reduced-motion. */
+const CORNER_CLASS = "hero-corner border-arcana-cyan drop-shadow-[0_0_6px_rgba(0,255,242,0.8)]";
+const CORNER_CLASS_ALT = "hero-corner border-arcana-pink drop-shadow-[0_0_6px_rgba(255,43,214,0.8)]";
+
+/**
+ * Crossfades between the marketing flyers with a CRT/HUD frame (scanline
+ * texture, a sweeping scan line, corner brackets) and a brief glitch-slice
+ * right at each cut. Freezes on the first slide, no glitch, no sweep under
+ * prefers-reduced-motion — matches the pattern GlitchText already uses.
+ */
 export function HeroFlyerCarousel() {
   const [index, setIndex] = useState(0);
+  const [glitching, setGlitching] = useState(false);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -20,14 +30,18 @@ export function HeroFlyerCarousel() {
     }
 
     const id = setInterval(() => {
+      setGlitching(true);
       setIndex((prev) => (prev + 1) % SLIDES.length);
+      setTimeout(() => setGlitching(false), GLITCH_MS);
     }, INTERVAL_MS);
 
     return () => clearInterval(id);
   }, []);
 
   return (
-    <div className="animate-hero-breathe relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded-2xl border border-arcana-border shadow-neon-cyan-sm sm:max-w-md">
+    <div
+      className={`hero-frame animate-hero-breathe relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded-2xl border border-arcana-border sm:max-w-md ${glitching ? "hero-glitching" : ""}`}
+    >
       {SLIDES.map((slide, i) => (
         <Image
           key={slide.src}
@@ -39,6 +53,13 @@ export function HeroFlyerCarousel() {
           className={`object-cover transition-opacity duration-1000 ease-in-out ${i === index ? "opacity-100" : "opacity-0"}`}
         />
       ))}
+
+      <div aria-hidden className="hero-scan-sweep" />
+
+      <span aria-hidden className={`${CORNER_CLASS} left-0 top-0 border-l-2 border-t-2`} />
+      <span aria-hidden className={`${CORNER_CLASS_ALT} right-0 top-0 border-r-2 border-t-2`} />
+      <span aria-hidden className={`${CORNER_CLASS_ALT} bottom-0 left-0 border-b-2 border-l-2`} />
+      <span aria-hidden className={`${CORNER_CLASS} bottom-0 right-0 border-b-2 border-r-2`} />
     </div>
   );
 }
