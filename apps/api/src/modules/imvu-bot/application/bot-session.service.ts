@@ -1,4 +1,12 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import type { ImvuBotStatusDto } from "@arcana/types";
 import { ROOM_ACCESS_CHECKER, type IRoomAccessChecker } from "../../../common/domain/room-access.interface";
 import { ROOM_LICENSE_CHECKER, type IRoomLicenseChecker } from "../../../common/domain/room-license-checker.interface";
@@ -70,7 +78,15 @@ export class BotSessionService {
       );
     }
 
-    await this.adapter.connect({ roomId, botCredential: token });
+    try {
+      await this.adapter.connect({ roomId, botCredential: token });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`imvu.js.org rejected the bot connection for room ${roomId}: ${reason}`);
+      throw new ServiceUnavailableException(
+        "No se pudo conectar el bot a imvu.js.org — revisá que el token guardado sea el correcto (copiado completo, sin espacios, y que la cuenta bot siga activa).",
+      );
+    }
 
     this.adapter.onMessage(roomId, (message) => {
       this.commandRouter
