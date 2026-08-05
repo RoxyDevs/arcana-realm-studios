@@ -77,10 +77,10 @@ Implementation status, module by module:
 |---|---|---|
 | **Auth** | ✅ | Discord OAuth, JWT access + rotating opaque refresh tokens, RBAC (`@Roles`) |
 | **Billing** | ✅ | Credit wallet, Stripe Checkout (one-time credits + Plus/Premium subscriptions), webhook handling, time-boxed bot licenses (1 day/week/month/3 months/year), audited manual wallet adjustments |
-| **Music** | ✅ | Per-room queue, cross-room shared library search, Spotify/YouTube track resolution, AutoDJ `playNext` hook, live mic/DJ broadcast (preempts AutoDJ via Icecast-compatible source apps) |
+| **Music** | ✅ | Per-room queue, cross-room shared library search, Spotify/YouTube track resolution, AutoDJ `playNext` hook, live mic/DJ broadcast (preempts AutoDJ via Icecast-compatible source apps, or push-to-talk straight from the browser via `apps/streaming/mic-bridge`) |
 | **Rooms** | ✅ | Bind any IMVU room by URL/ID, verify ownership via a token placed in the room's description, get back the room's Icecast/HLS stream URL once verified + bot-licensed |
 | **Streaming** | 🔜 verified outside Docker | `apps/streaming/` — Icecast + Liquidsoap AutoDJ broadcasting each room's upload queue as MP3, polling `apps/api`'s `/internal/streaming/*` for what's active/next. Run end-to-end against a real `apps/api` + Postgres (real Icecast/Liquidsoap, real seeded room/track, a real listener confirming genuine MP3 bytes) — see `apps/streaming/README.md`. Docker itself still unbuilt: every sandbox this was developed in blocks Docker Hub's image CDN |
-| **Guardian** | ✅ | Service layer on `GuardianReport`/`ReputationScore`/`GuardianSettings`: room-owner-scoped settings + incident reports, platform-role-gated review, opt-in cross-room reputation aggregation |
+| **Guardian** | ✅ | Service layer on `GuardianReport`/`ReputationScore`/`GuardianSettings`: room-owner-scoped settings + incident reports, platform-role-gated review, opt-in cross-room reputation aggregation. Gated behind its own credit-funded `GuardianLicense` — independent of `BotLicense`, no longer free-forever |
 | Intelligence | 🔜 | `Room` model in place — analytics/heatmaps not yet built |
 | Studio | 🔜 | Not started |
 
@@ -105,6 +105,12 @@ PostgreSQL via Prisma (`packages/database/prisma/schema.prisma`). Key models:
   `MANUAL_GRANT` (an `OWNER`/`ADMIN` grants time directly after confirming a payment
   Arcana can't verify automatically — PayPal.me, an in-game VCoin gift — always tied to
   the granting admin's `User.id` and logged in `AuditLog`)
+- **Guardian Licenses**: `GuardianLicense` — same shape and same two sources as
+  `BotLicense` (`DAY_1` … `YEAR_1`; `@arcana/types`' `GUARDIAN_LICENSE_PLANS`), but a
+  fully separate credit ledger from bot time: a room can have AutoDJ without Guardian,
+  Guardian without AutoDJ, or both. `GuardianSettingsService`/`GuardianReportService`
+  call `GuardianLicenseService.assertActive` before serving any room-scoped request —
+  an unlicensed room gets a 403, not silently-free moderation
 
 ### Migration strategy
 
@@ -177,6 +183,12 @@ source. Internal-only, not part of the public API surface: `GET
 Guardian: `GET`/`PATCH /rooms/:roomId/guardian/settings` and `POST`/`GET
 /rooms/:roomId/guardian/reports` are room-owner scoped, same as Music/Bot Licenses —
 filing a report is about an incident in *your own* room, never third-party tracking.
+Both require an active `GuardianLicense` for the room (`GuardianLicenseService.assertActive`)
+or they 403 — Guardian is a paid module, not a free-forever perk. `GET/POST
+/rooms/:roomId/guardian/license` (status/purchase) and `POST
+/rooms/:roomId/guardian/license/grant` (`OWNER`/`ADMIN` manual grant) mirror the
+Bot License endpoints exactly, but spend/grant against a completely separate
+credit ledger.
 `POST /guardian/reports/:reportId/review` is deliberately **not** room-scoped: it's
 gated to platform `OWNER`/`ADMIN` roles (`@Roles`, same pattern as the bot-license
 manual grant), because a room owner filing a report can't also be the one who confirms

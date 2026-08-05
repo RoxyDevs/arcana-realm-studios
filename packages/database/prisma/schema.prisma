@@ -42,6 +42,7 @@ model User {
   reviewedReports GuardianReport[] @relation("ReportReviewer")
   auditLogs     AuditLog[]
   grantedLicenses BotLicense[]     @relation("LicenseGrantedBy")
+  grantedGuardianLicenses GuardianLicense[] @relation("GuardianLicenseGrantedBy")
   liveSessions  LiveSession[]
   roomMemberships RoomMember[]
 
@@ -109,13 +110,15 @@ model Room {
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
 
-  owner            User              @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  musicQueue       MusicQueueItem[]
-  botLicenses      BotLicense[]
-  guardianSettings GuardianSettings?
-  guardianReports  GuardianReport[]
-  liveSessions     LiveSession[]
-  members          RoomMember[]
+  owner             User               @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  musicQueue        MusicQueueItem[]
+  botLicenses       BotLicense[]
+  guardianLicenses  GuardianLicense[]
+  guardianSettings  GuardianSettings?
+  guardianReports   GuardianReport[]
+  liveSessions      LiveSession[]
+  members           RoomMember[]
+  imvuBotCredential ImvuBotCredential?
 
   @@index([ownerId])
   @@map("rooms")
@@ -132,8 +135,14 @@ model RoomMember {
   roomId    String
   userId    String
   roleTag   String?
-  joinedAt  DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Self-reported, same trust level as roleTag — NOT a verified identity
+  // link. Lets an incoming ImvuRoomChatMessage.senderDisplayName (see
+  // imvu-bot's domain port) be matched back to this roster row so bot
+  // responses can be conscious of a chatter's roleTag. Nothing enforces
+  // that the person actually owns this IMVU display name.
+  imvuDisplayName String?
+  joinedAt        DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -290,6 +299,61 @@ model BotLicense {
 
   @@index([roomId, expiresAt])
   @@map("bot_licenses")
+}
+
+// The room owner's imvu.js.org bot token — see apps/api/src/modules/imvu-bot/README.md
+// for what this actually is (NOT an IMVU-issued credential; a token from an
+// unaffiliated third-party relay) and why it's encrypted at rest instead of
+// stored plainly like Room.streamKey. One per room, replaced wholesale on
+// re-entry rather than versioned.
+model ImvuBotCredential {
+  id             String   @id @default(cuid())
+  roomId         String   @unique
+  encryptedToken String
+  iv             String
+  authTag        String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@map("imvu_bot_credentials")
+}
+
+// Time-boxed Guardian (moderation) access for a Room — deliberately independent
+// of BotLicense: a room can run AutoDJ without Guardian, Guardian without
+// AutoDJ, or both. Same credit-ledger pattern (self-service purchase or
+// audited manual grant) as BotLicense; Guardian settings/reports are only
+// served for a room while this is active (see GuardianLicenseService.isActive).
+enum GuardianLicensePlan {
+  DAY_1
+  WEEK_1
+  MONTH_1
+  MONTH_3
+  YEAR_1
+}
+
+enum GuardianLicenseSource {
+  CREDIT_PURCHASE
+  MANUAL_GRANT
+}
+
+model GuardianLicense {
+  id          String                @id @default(cuid())
+  roomId      String
+  plan        GuardianLicensePlan
+  source      GuardianLicenseSource
+  creditsCost Int
+  startsAt    DateTime
+  expiresAt   DateTime
+  grantedById String?
+  createdAt   DateTime              @default(now())
+
+  room      Room  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  grantedBy User? @relation("GuardianLicenseGrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  @@index([roomId, expiresAt])
+  @@map("guardian_licenses")
 }
 
 // ---------------------------------------------------------------------------

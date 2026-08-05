@@ -175,6 +175,43 @@ export interface BulkLicensePurchaseResultDto {
 }
 
 // ---------------------------------------------------------------------------
+// Guardian Licenses — time-boxed moderation access per room, deliberately
+// independent of BotLicense (a room can run AutoDJ without Guardian, or
+// Guardian without AutoDJ). Same credit-ledger pattern as BotLicense;
+// priced lower per plan since Guardian carries no streaming infrastructure
+// cost, but every plan still costs real credits — Guardian is no longer a
+// free-forever module.
+// ---------------------------------------------------------------------------
+
+export const GuardianLicensePlanSchema = z.enum(["DAY_1", "WEEK_1", "MONTH_1", "MONTH_3", "YEAR_1"]);
+export type GuardianLicensePlan = z.infer<typeof GuardianLicensePlanSchema>;
+
+export interface GuardianLicensePlanDefinition {
+  days: number;
+  credits: number;
+  label: string;
+}
+
+export const GUARDIAN_LICENSE_PLANS: Record<GuardianLicensePlan, GuardianLicensePlanDefinition> = {
+  DAY_1: { days: 1, credits: 25, label: "1 día" },
+  WEEK_1: { days: 7, credits: 120, label: "1 semana" },
+  MONTH_1: { days: 30, credits: 400, label: "1 mes" },
+  MONTH_3: { days: 90, credits: 1000, label: "3 meses" },
+  YEAR_1: { days: 365, credits: 3000, label: "1 año" },
+};
+
+export const PurchaseGuardianLicenseSchema = z.object({
+  plan: GuardianLicensePlanSchema,
+});
+export type PurchaseGuardianLicenseDto = z.infer<typeof PurchaseGuardianLicenseSchema>;
+
+export interface GuardianLicenseStatusDto {
+  active: boolean;
+  plan: GuardianLicensePlan | null;
+  expiresAt: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Rooms — binding a user's IMVU room to Arcana (ownership verified via a
 // token placed in the room's description, mirroring Vusic's flow).
 // ---------------------------------------------------------------------------
@@ -215,6 +252,8 @@ export interface RoomMemberDto {
   username: string;
   avatarUrl: string | null;
   roleTag: string | null;
+  /** Self-reported IMVU display name — see RoomMember.imvuDisplayName's schema comment for its trust level. */
+  imvuDisplayName: string | null;
   joinedAt: string;
 }
 
@@ -287,6 +326,14 @@ export interface LiveIngestCredentialsDto {
   mount: string;
   username: string;
   sourcePassword: string;
+  /**
+   * WebSocket URL of the streaming service's browser-mic bridge — a browser
+   * can't speak the Icecast source protocol (harborHost/harborPort) directly
+   * the way OBS/Mixxx/ffmpeg do, so push-to-talk from the dashboard connects
+   * here instead, sending the same mount/username/sourcePassword as its
+   * first message (see apps/streaming/mic-bridge).
+   */
+  micBridgeUrl: string;
 }
 
 export interface LiveStatusDto {
@@ -353,6 +400,18 @@ export interface ReputationScoreDto {
   subjectIdentifier: string;
   score: number;
   confirmedReports: number;
+}
+
+// ---------------------------------------------------------------------------
+// IMVU room bot — see apps/api/src/modules/imvu-bot/README.md for why this
+// depends on a third-party relay (imvu.js.org), not any IMVU-owned API.
+// ---------------------------------------------------------------------------
+
+export interface ImvuBotStatusDto {
+  /** Whether the bot currently has a live connection to the room's chat. */
+  connected: boolean;
+  /** Whether an imvu.js.org token has been saved for this room at all. */
+  hasCredential: boolean;
 }
 
 // ---------------------------------------------------------------------------

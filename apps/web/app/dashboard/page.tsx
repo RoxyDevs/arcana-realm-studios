@@ -10,6 +10,7 @@ import { RoomBindingPanel } from "@/components/room-binding-panel";
 import { TrackUploadPanel } from "@/components/track-upload-panel";
 import { NowPlayingPanel } from "@/components/now-playing-panel";
 import { LivePanel } from "@/components/live-panel";
+import { ImvuBotPanel } from "@/components/imvu-bot-panel";
 import { RoomRosterPanel } from "@/components/room-roster-panel";
 import { GuardianPanel } from "@/components/guardian-panel";
 import { AdminGrantPanel } from "@/components/admin-grant-panel";
@@ -71,6 +72,8 @@ export default function DashboardPage() {
       <NowPlayingPanel />
 
       <LivePanel />
+
+      <ImvuBotPanel />
 
       <RoomRosterPanel />
 

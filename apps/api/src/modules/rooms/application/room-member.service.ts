@@ -13,6 +13,7 @@ function toDto(member: RoomMemberWithUser): RoomMemberDto {
     username: member.username,
     avatarUrl: member.avatarUrl,
     roleTag: member.roleTag,
+    imvuDisplayName: member.imvuDisplayName,
     joinedAt: member.joinedAt.toISOString(),
   };
 }
@@ -30,12 +31,17 @@ export class RoomMemberService {
     @Inject(ROOM_MEMBER_REPOSITORY) private readonly members: IRoomMemberRepository,
   ) {}
 
-  async setMyRole(roomId: string, userId: string, roleTag: string | null): Promise<RoomMemberDto> {
+  async setMyRole(
+    roomId: string,
+    userId: string,
+    roleTag: string | null,
+    imvuDisplayName?: string | null,
+  ): Promise<RoomMemberDto> {
     const room = await this.rooms.findById(roomId);
     if (!room) {
       throw new NotFoundException("Room not found");
     }
-    const member = await this.members.upsertRole({ roomId, userId, roleTag });
+    const member = await this.members.upsertRole({ roomId, userId, roleTag, imvuDisplayName });
     return toDto(member);
   }
 

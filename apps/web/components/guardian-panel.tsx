@@ -2,15 +2,20 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type {
-  CreateGuardianReportDto,
-  GuardianReportCategory,
-  GuardianReportDto,
-  GuardianSettingsDto,
-  RoomDto,
-  UpdateGuardianSettingsDto,
+import {
+  GUARDIAN_LICENSE_PLANS,
+  type CreateGuardianReportDto,
+  type GuardianLicensePlan,
+  type GuardianLicenseStatusDto,
+  type GuardianReportCategory,
+  type GuardianReportDto,
+  type GuardianSettingsDto,
+  type RoomDto,
+  type UpdateGuardianSettingsDto,
 } from "@arcana/types";
 import { apiFetch, ApiError } from "@/lib/api-client";
+
+const LICENSE_PLAN_ORDER: GuardianLicensePlan[] = ["DAY_1", "WEEK_1", "MONTH_1", "MONTH_3", "YEAR_1"];
 
 const CATEGORIES: GuardianReportCategory[] = [
   "HARASSMENT",
@@ -42,16 +47,36 @@ export function GuardianPanel() {
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
+  const { data: license } = useQuery({
+    queryKey: ["guardian", "license", roomId],
+    queryFn: () => apiFetch<GuardianLicenseStatusDto>(`/rooms/${roomId}/guardian/license`),
+    enabled: !!roomId,
+  });
+
   const { data: settings } = useQuery({
     queryKey: ["guardian", "settings", roomId],
     queryFn: () => apiFetch<GuardianSettingsDto>(`/rooms/${roomId}/guardian/settings`),
-    enabled: !!roomId,
+    enabled: !!roomId && !!license?.active,
   });
 
   const { data: reports } = useQuery({
     queryKey: ["guardian", "reports", roomId],
     queryFn: () => apiFetch<GuardianReportDto[]>(`/rooms/${roomId}/guardian/reports`),
-    enabled: !!roomId,
+    enabled: !!roomId && !!license?.active,
+  });
+
+  const purchaseLicense = useMutation({
+    mutationFn: (plan: GuardianLicensePlan) =>
+      apiFetch<GuardianLicenseStatusDto>(`/rooms/${roomId}/guardian/license/purchase`, {
+        method: "POST",
+        body: JSON.stringify({ plan }),
+      }),
+    onSuccess: (updated) => {
+      setError(null);
+      queryClient.setQueryData(["guardian", "license", roomId], updated);
+      queryClient.invalidateQueries({ queryKey: ["billing", "wallet"] });
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.message : "Couldn't purchase a Guardian license"),
   });
 
   const updateSettings = useMutation({
@@ -108,7 +133,41 @@ export function GuardianPanel() {
         ))}
       </select>
 
-      {roomId && settings && (
+      {roomId && license && !license.active && (
+        <div className="mt-4 rounded-lg border border-arcana-pink/40 bg-arcana-pink/5 p-4">
+          <p className="text-base text-arcana-text">
+            Guardian isn&rsquo;t licensed for this room. Buy moderation time with wallet credits
+            to turn on anti-spam/anti-raid, incident reports and reputation scoring — independent
+            of any bot-time license you already have.
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-5">
+            {LICENSE_PLAN_ORDER.map((plan) => {
+              const def = GUARDIAN_LICENSE_PLANS[plan];
+              return (
+                <button
+                  key={plan}
+                  type="button"
+                  disabled={purchaseLicense.isPending}
+                  onClick={() => purchaseLicense.mutate(plan)}
+                  className="min-h-[56px] rounded-lg border border-arcana-border bg-arcana-bg px-3 py-3 text-left text-base text-arcana-text transition-all hover:border-arcana-pink/70 hover:shadow-neon-pink-sm disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <div className="font-semibold">{def.label}</div>
+                  <div className="text-sm text-arcana-textMuted">{def.credits} credits</div>
+                </button>
+              );
+            })}
+          </div>
+          {error && <p className="mt-3 text-base text-red-400">{error}</p>}
+        </div>
+      )}
+
+      {roomId && license?.active && (
+        <p className="mt-3 text-base text-arcana-textMuted">
+          Guardian active ({license.plan}) until {new Date(license.expiresAt!).toLocaleDateString()}
+        </p>
+      )}
+
+      {roomId && license?.active && settings && (
         <div className="mt-4 space-y-2">
           {TOGGLES.map((toggle) => (
             <label key={toggle.key} className="flex items-center gap-3 text-base text-arcana-text">
@@ -125,7 +184,7 @@ export function GuardianPanel() {
         </div>
       )}
 
-      {roomId && (
+      {roomId && license?.active && (
         <div className="mt-5">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-arcana-textMuted">
             File an incident report

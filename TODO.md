@@ -2,6 +2,74 @@
 
 Running log of pending work, dated by session. Newest entries on top.
 
+## 2026-08-05
+
+- **Bot de sala IMVU — implementado end-to-end (todavía sin probar contra
+  una cuenta bot real)**. Decisión de negocio: seguir con `imvu.js.org` pese
+  a los riesgos ya documentados (token de la cuenta bot en manos de un
+  tercero no auditable) — el dueño de la sala vio el bot `BorealVU` andando
+  en vivo en su propia sala y pidió explícitamente avanzar. Se construyó:
+  - `apps/api/src/modules/imvu-bot/infrastructure/imvu-js-room-chat.adapter.ts`
+    — implementación real de `IImvuRoomChatAdapter` contra el código fuente
+    genuino de `imvu.js` (se leyó `lib/imvu.js`/`lib/ws.js` directo, no el
+    README).
+  - Token del bot encriptado en reposo (`ImvuBotCredential`, AES-256-GCM vía
+    `AesSecretBox`, nueva env var `IMVU_BOT_CREDENTIAL_ENCRYPTION_KEY`).
+  - Endpoints `GET/PUT/DELETE /rooms/:roomId/bot(/credential)` y
+    `POST /rooms/:roomId/bot/start|stop`, gateados por `BotLicense` activa.
+  - `ChatCommandRouter`: `!play`, `!skip`, `!queue`, `!nowplaying` contra la
+    cola real de `MusicService` — esto es lo que responde "no puedo
+    reproducir música" del dueño de la sala.
+  - Panel de dashboard (`imvu-bot-panel.tsx`) para pegar el token y
+    arrancar/parar el bot.
+  - `RoomMember.imvuDisplayName` agregado (self-service, mismo nivel de
+    confianza que `roleTag`) — cierra el gap de schema que bloqueaba
+    conciencia de rol, aunque nada lo consume todavía (eso es para la capa
+    de IA conversacional, todavía no construida).
+  - Migración de Prisma escrita a mano (`20260805120000_...`) — no había
+    Postgres disponible en este entorno para `prisma migrate dev`; validada
+    con `prisma validate` + `prisma generate`, sigue el estilo exacto de las
+    migraciones previas. **Falta aplicarla en la base real antes de
+    deployar.**
+  - Pendiente real antes de dar esto por probado: una cuenta bot de
+    `imvu.js.org` de verdad (separada de la cuenta principal del dueño, por
+    seguridad) para ejercitar `connect()` de punta a punta.
+  - Capa de IA conversacional (task "Host conversacional con IA") sigue sin
+    construir — necesita antes una decisión de proveedor de LLM, que no
+    existe todavía en este código.
+
+## 2026-08-04 (continuación)
+
+- **Guardian monetizado**: ya no es gratis para siempre — licencia propia
+  por créditos (`GuardianLicense`), independiente de `BotLicense`. Ver
+  `apps/api/src/modules/guardian/application/guardian-license.service.ts`.
+- **Push-to-talk hecho**: `apps/streaming/mic-bridge` — puente WebSocket
+  real, probado de punta a punta en sandbox (icecast2+liquidsoap+ffmpeg
+  reales, sin Docker) con audio genuino confirmado por `ffprobe`.
+- **Bot de IMVU — investigación de `imvu.js` completa, hallazgo importante**:
+  `imvu.js` **no es un cliente del protocolo de IMVU** — es un cliente de un
+  relay de terceros (`imvu.js.org`, no afiliado a IMVU) que autentica ahí y
+  después escucha eventos de sala por un canal de **Supabase Realtime** que
+  ese backend entrega. Usarlo implica darle el token de la cuenta bot de
+  IMVU a un sitio de un solo mantenedor, sin código abierto del lado que sí
+  habla con IMVU, con una licencia que prohíbe forkearlo/modificarlo. Detalle
+  completo en `apps/api/src/modules/imvu-bot/README.md`. La interfaz de
+  dominio `IImvuRoomChatAdapter` ya está escrita
+  (`apps/api/src/modules/imvu-bot/domain/`), pero **no hay adapter de
+  infraestructura todavía** — bloqueado en (a) decisión de negocio sobre
+  confiar en `imvu.js.org` y (b) credenciales reales de una cuenta bot para
+  probar. También encontré que `RoomMember` no tiene ningún campo de
+  identidad de IMVU — hace falta agregar algo como `imvuDisplayName` antes
+  de que las respuestas conscientes de rol (`roleTag`) sean posibles.
+- Jamendo: cuenta `roxdev` registrada, key de app creada del lado de
+  Jamendo, pero el login en devportal.jamendo.com sigue bloqueado
+  ("account isn't active or hasn't been approved yet"). Se escribió a
+  `api@jamendo.com` pidiendo que activen la cuenta — esperando respuesta.
+- Sigue pendiente: `JAMENDO_CLIENT_ID` (bloqueado en lo de arriba),
+  `STRIPE_PRICE_PLUS_MONTHLY`/`STRIPE_PRICE_PREMIUM_MONTHLY` reales, y
+  renombrar el servicio de Railway `arcana-realm-studios` → `streaming`
+  (no se puede por API/MCP, solo desde el dashboard — instrucciones dadas).
+
 ## 2026-08-04
 
 Pendiente para retomar mañana, en orden de prioridad:

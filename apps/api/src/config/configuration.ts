@@ -46,6 +46,14 @@ export interface AppConfig {
      * LIQUIDSOAP_HARBOR_PORT.
      */
     harborPort: number;
+    /**
+     * Port the streaming service's browser-mic bridge listens on (see
+     * apps/streaming/mic-bridge) — a WebSocket relay that transcodes a
+     * browser's MediaRecorder audio into an Icecast source push against the
+     * harbor above, since a browser can't speak the Icecast source protocol
+     * directly. Must match that service's MIC_BRIDGE_PORT.
+     */
+    micBridgePort: number;
   };
   objectStorage: {
     /** Cloudflare R2 — S3-compatible. Empty until configured; upload endpoints fail loudly rather than silently no-op. */
@@ -55,6 +63,15 @@ export interface AppConfig {
     bucket: string;
     /** Public base URL the bucket is served from (R2 public bucket URL or a custom domain). */
     publicBaseUrl: string;
+  };
+  imvuBot: {
+    /**
+     * 32-byte key (base64), used to AES-256-GCM encrypt each room's
+     * imvu.js.org bot token at rest — see SecretBox and
+     * PrismaImvuBotCredentialRepository. Empty until configured; credential
+     * writes fail loudly rather than ever storing a token in plaintext.
+     */
+    credentialEncryptionKey: string;
   };
 }
 
@@ -90,6 +107,7 @@ export default (): AppConfig => ({
     baseUrl: process.env.STREAMING_BASE_URL ?? "https://stream.arcanarealmstudios.com",
     internalToken: process.env.STREAMING_INTERNAL_TOKEN ?? "",
     harborPort: parseInt(process.env.STREAMING_HARBOR_PORT ?? "8006", 10),
+    micBridgePort: parseInt(process.env.STREAMING_MIC_BRIDGE_PORT ?? "8007", 10),
   },
   objectStorage: {
     accountId: process.env.R2_ACCOUNT_ID ?? "",
@@ -97,5 +115,8 @@ export default (): AppConfig => ({
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
     bucket: process.env.R2_BUCKET ?? "",
     publicBaseUrl: process.env.R2_PUBLIC_BASE_URL ?? "",
+  },
+  imvuBot: {
+    credentialEncryptionKey: process.env.IMVU_BOT_CREDENTIAL_ENCRYPTION_KEY ?? "",
   },
 });

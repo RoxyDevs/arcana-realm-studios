@@ -12,6 +12,7 @@ import { RoomsModule } from "./modules/rooms/rooms.module";
 import { StreamingInternalModule } from "./modules/streaming-internal/streaming-internal.module";
 import { GuardianModule } from "./modules/guardian/guardian.module";
 import { LiveModule } from "./modules/live/live.module";
+import { ImvuBotModule } from "./modules/imvu-bot/imvu-bot.module";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { LiveModule } from "./modules/live/live.module";
     StreamingInternalModule,
     GuardianModule,
     LiveModule,
+    ImvuBotModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

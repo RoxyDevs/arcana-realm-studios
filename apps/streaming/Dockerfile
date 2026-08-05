@@ -19,7 +19,10 @@ RUN apt-get update -y && \
       curl \
       jq \
       gettext-base \
-      ca-certificates && \
+      ca-certificates \
+      ffmpeg \
+      nodejs \
+      npm && \
     rm -rf /var/lib/apt/lists/*
 
 # Debian's icecast2 package tries to start a system service on install —
@@ -33,9 +36,18 @@ COPY check-live-auth.sh /app/check-live-auth.sh
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/generate-liquidsoap.sh /app/next-track.sh /app/check-live-auth.sh /app/entrypoint.sh
 
+# Browser mic push-to-talk relay — see mic-bridge/server.js. Only "ws" as a
+# real dependency, installed at build time so the container never needs npm
+# registry access at runtime.
+COPY mic-bridge/package.json /app/mic-bridge/package.json
+RUN cd /app/mic-bridge && npm install --omit=dev --no-audit --no-fund
+COPY mic-bridge/server.js /app/mic-bridge/server.js
+
 ENV ICECAST_PORT=8000
 ENV LIQUIDSOAP_HARBOR_PORT=8006
+ENV MIC_BRIDGE_PORT=8007
 EXPOSE 8000
 EXPOSE 8006
+EXPOSE 8007
 
 ENTRYPOINT ["/app/entrypoint.sh"]
