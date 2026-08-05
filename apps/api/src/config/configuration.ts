@@ -64,6 +64,15 @@ export interface AppConfig {
     /** Public base URL the bucket is served from (R2 public bucket URL or a custom domain). */
     publicBaseUrl: string;
   };
+  imvuBot: {
+    /**
+     * 32-byte key (base64), used to AES-256-GCM encrypt each room's
+     * imvu.js.org bot token at rest — see SecretBox and
+     * PrismaImvuBotCredentialRepository. Empty until configured; credential
+     * writes fail loudly rather than ever storing a token in plaintext.
+     */
+    credentialEncryptionKey: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -106,5 +115,8 @@ export default (): AppConfig => ({
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
     bucket: process.env.R2_BUCKET ?? "",
     publicBaseUrl: process.env.R2_PUBLIC_BASE_URL ?? "",
+  },
+  imvuBot: {
+    credentialEncryptionKey: process.env.IMVU_BOT_CREDENTIAL_ENCRYPTION_KEY ?? "",
   },
 });

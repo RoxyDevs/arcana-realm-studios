@@ -2,6 +2,42 @@
 
 Running log of pending work, dated by session. Newest entries on top.
 
+## 2026-08-05
+
+- **Bot de sala IMVU — implementado end-to-end (todavía sin probar contra
+  una cuenta bot real)**. Decisión de negocio: seguir con `imvu.js.org` pese
+  a los riesgos ya documentados (token de la cuenta bot en manos de un
+  tercero no auditable) — el dueño de la sala vio el bot `BorealVU` andando
+  en vivo en su propia sala y pidió explícitamente avanzar. Se construyó:
+  - `apps/api/src/modules/imvu-bot/infrastructure/imvu-js-room-chat.adapter.ts`
+    — implementación real de `IImvuRoomChatAdapter` contra el código fuente
+    genuino de `imvu.js` (se leyó `lib/imvu.js`/`lib/ws.js` directo, no el
+    README).
+  - Token del bot encriptado en reposo (`ImvuBotCredential`, AES-256-GCM vía
+    `AesSecretBox`, nueva env var `IMVU_BOT_CREDENTIAL_ENCRYPTION_KEY`).
+  - Endpoints `GET/PUT/DELETE /rooms/:roomId/bot(/credential)` y
+    `POST /rooms/:roomId/bot/start|stop`, gateados por `BotLicense` activa.
+  - `ChatCommandRouter`: `!play`, `!skip`, `!queue`, `!nowplaying` contra la
+    cola real de `MusicService` — esto es lo que responde "no puedo
+    reproducir música" del dueño de la sala.
+  - Panel de dashboard (`imvu-bot-panel.tsx`) para pegar el token y
+    arrancar/parar el bot.
+  - `RoomMember.imvuDisplayName` agregado (self-service, mismo nivel de
+    confianza que `roleTag`) — cierra el gap de schema que bloqueaba
+    conciencia de rol, aunque nada lo consume todavía (eso es para la capa
+    de IA conversacional, todavía no construida).
+  - Migración de Prisma escrita a mano (`20260805120000_...`) — no había
+    Postgres disponible en este entorno para `prisma migrate dev`; validada
+    con `prisma validate` + `prisma generate`, sigue el estilo exacto de las
+    migraciones previas. **Falta aplicarla en la base real antes de
+    deployar.**
+  - Pendiente real antes de dar esto por probado: una cuenta bot de
+    `imvu.js.org` de verdad (separada de la cuenta principal del dueño, por
+    seguridad) para ejercitar `connect()` de punta a punta.
+  - Capa de IA conversacional (task "Host conversacional con IA") sigue sin
+    construir — necesita antes una decisión de proveedor de LLM, que no
+    existe todavía en este código.
+
 ## 2026-08-04 (continuación)
 
 - **Guardian monetizado**: ya no es gratis para siempre — licencia propia

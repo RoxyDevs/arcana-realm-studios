@@ -252,6 +252,8 @@ export interface RoomMemberDto {
   username: string;
   avatarUrl: string | null;
   roleTag: string | null;
+  /** Self-reported IMVU display name — see RoomMember.imvuDisplayName's schema comment for its trust level. */
+  imvuDisplayName: string | null;
   joinedAt: string;
 }
 
@@ -398,6 +400,18 @@ export interface ReputationScoreDto {
   subjectIdentifier: string;
   score: number;
   confirmedReports: number;
+}
+
+// ---------------------------------------------------------------------------
+// IMVU room bot — see apps/api/src/modules/imvu-bot/README.md for why this
+// depends on a third-party relay (imvu.js.org), not any IMVU-owned API.
+// ---------------------------------------------------------------------------
+
+export interface ImvuBotStatusDto {
+  /** Whether the bot currently has a live connection to the room's chat. */
+  connected: boolean;
+  /** Whether an imvu.js.org token has been saved for this room at all. */
+  hasCredential: boolean;
 }
 
 // ---------------------------------------------------------------------------

@@ -15,6 +15,7 @@ export function RoomRosterPanel() {
 
   const [roomId, setRoomId] = useState("");
   const [roleTag, setRoleTag] = useState("");
+  const [imvuDisplayName, setImvuDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -28,7 +29,10 @@ export function RoomRosterPanel() {
     mutationFn: () =>
       apiFetch<RoomMemberDto>(`/rooms/${roomId}/members/me`, {
         method: "PUT",
-        body: JSON.stringify({ roleTag: roleTag.trim() || null }),
+        body: JSON.stringify({
+          roleTag: roleTag.trim() || null,
+          imvuDisplayName: imvuDisplayName.trim() || null,
+        }),
       }),
     onSuccess: () => {
       setError(null);
@@ -74,6 +78,13 @@ export function RoomRosterPanel() {
               maxLength={40}
               className="min-h-[48px] flex-1 rounded-md border border-arcana-border bg-arcana-bg px-3 py-3 text-base text-arcana-text placeholder:text-arcana-textMuted focus:border-arcana-pink/70 focus:outline-none"
             />
+            <input
+              value={imvuDisplayName}
+              onChange={(e) => setImvuDisplayName(e.target.value)}
+              placeholder="Your IMVU display name (for the bot)"
+              maxLength={60}
+              className="min-h-[48px] flex-1 rounded-md border border-arcana-border bg-arcana-bg px-3 py-3 text-base text-arcana-text placeholder:text-arcana-textMuted focus:border-arcana-pink/70 focus:outline-none"
+            />
             <button
               type="button"
               disabled={setRole.isPending}
@@ -92,7 +103,12 @@ export function RoomRosterPanel() {
                 key={member.userId}
                 className="flex items-center justify-between rounded-lg border border-arcana-border bg-arcana-bg p-3 text-base text-arcana-text"
               >
-                <span>{member.username}</span>
+                <span>
+                  {member.username}
+                  {member.imvuDisplayName && (
+                    <span className="ml-2 text-sm text-arcana-textMuted">({member.imvuDisplayName})</span>
+                  )}
+                </span>
                 <span className="text-arcana-textMuted">{member.roleTag ?? "—"}</span>
               </div>
             ))}

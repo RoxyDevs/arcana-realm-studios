@@ -110,14 +110,15 @@ model Room {
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
 
-  owner            User              @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  musicQueue       MusicQueueItem[]
-  botLicenses      BotLicense[]
-  guardianLicenses GuardianLicense[]
-  guardianSettings GuardianSettings?
-  guardianReports  GuardianReport[]
-  liveSessions     LiveSession[]
-  members          RoomMember[]
+  owner             User               @relation("RoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  musicQueue        MusicQueueItem[]
+  botLicenses       BotLicense[]
+  guardianLicenses  GuardianLicense[]
+  guardianSettings  GuardianSettings?
+  guardianReports   GuardianReport[]
+  liveSessions      LiveSession[]
+  members           RoomMember[]
+  imvuBotCredential ImvuBotCredential?
 
   @@index([ownerId])
   @@map("rooms")
@@ -134,8 +135,14 @@ model RoomMember {
   roomId    String
   userId    String
   roleTag   String?
-  joinedAt  DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Self-reported, same trust level as roleTag — NOT a verified identity
+  // link. Lets an incoming ImvuRoomChatMessage.senderDisplayName (see
+  // imvu-bot's domain port) be matched back to this roster row so bot
+  // responses can be conscious of a chatter's roleTag. Nothing enforces
+  // that the person actually owns this IMVU display name.
+  imvuDisplayName String?
+  joinedAt        DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -292,6 +299,25 @@ model BotLicense {
 
   @@index([roomId, expiresAt])
   @@map("bot_licenses")
+}
+
+// The room owner's imvu.js.org bot token — see apps/api/src/modules/imvu-bot/README.md
+// for what this actually is (NOT an IMVU-issued credential; a token from an
+// unaffiliated third-party relay) and why it's encrypted at rest instead of
+// stored plainly like Room.streamKey. One per room, replaced wholesale on
+// re-entry rather than versioned.
+model ImvuBotCredential {
+  id             String   @id @default(cuid())
+  roomId         String   @unique
+  encryptedToken String
+  iv             String
+  authTag        String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@map("imvu_bot_credentials")
 }
 
 // Time-boxed Guardian (moderation) access for a Room — deliberately independent

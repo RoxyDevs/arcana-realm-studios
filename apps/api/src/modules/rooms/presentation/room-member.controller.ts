@@ -27,6 +27,6 @@ export class RoomMemberController {
     @CurrentUser() user: AuthenticatedUserDto,
     @Body() dto: SetRoomRoleRequestDto,
   ): Promise<RoomMemberDto> {
-    return this.roomMemberService.setMyRole(roomId, user.id, dto.roleTag ?? null);
+    return this.roomMemberService.setMyRole(roomId, user.id, dto.roleTag ?? null, dto.imvuDisplayName ?? undefined);
   }
 }

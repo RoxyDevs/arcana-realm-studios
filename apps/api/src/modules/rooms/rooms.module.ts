@@ -19,5 +19,6 @@ import { ImvuRoomApiVerifier } from "./infrastructure/imvu-room-api.verifier";
     { provide: ROOM_MEMBER_REPOSITORY, useClass: PrismaRoomMemberRepository },
     { provide: ROOM_OWNERSHIP_VERIFIER, useClass: ImvuRoomApiVerifier },
   ],
+  exports: [ROOM_REPOSITORY],
 })
 export class RoomsModule {}

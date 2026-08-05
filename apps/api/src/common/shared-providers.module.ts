@@ -9,6 +9,7 @@ import { OBJECT_STORAGE } from "./domain/object-storage.interface";
 import { R2ObjectStorage } from "./infrastructure/r2-object.storage";
 import { ROOM_STREAM_KEY_LOOKUP } from "./domain/room-stream-key.interface";
 import { PrismaRoomStreamKeyLookup } from "./infrastructure/prisma-room-stream-key.lookup";
+import { AesSecretBox } from "./infrastructure/aes-secret-box";
 
 @Global()
 @Module({
@@ -18,7 +19,15 @@ import { PrismaRoomStreamKeyLookup } from "./infrastructure/prisma-room-stream-k
     { provide: ROOM_LICENSE_CHECKER, useClass: PrismaRoomLicenseChecker },
     { provide: OBJECT_STORAGE, useClass: R2ObjectStorage },
     { provide: ROOM_STREAM_KEY_LOOKUP, useClass: PrismaRoomStreamKeyLookup },
+    AesSecretBox,
   ],
-  exports: [ROOM_ACCESS_CHECKER, AUDIT_LOGGER, ROOM_LICENSE_CHECKER, OBJECT_STORAGE, ROOM_STREAM_KEY_LOOKUP],
+  exports: [
+    ROOM_ACCESS_CHECKER,
+    AUDIT_LOGGER,
+    ROOM_LICENSE_CHECKER,
+    OBJECT_STORAGE,
+    ROOM_STREAM_KEY_LOOKUP,
+    AesSecretBox,
+  ],
 })
 export class SharedProvidersModule {}

@@ -16,11 +16,20 @@ export class PrismaRoomMemberRepository implements IRoomMemberRepository {
     roomId: string;
     userId: string;
     roleTag: string | null;
+    imvuDisplayName?: string | null;
   }): Promise<RoomMemberWithUser> {
     const member = await this.prisma.roomMember.upsert({
       where: { roomId_userId: { roomId: params.roomId, userId: params.userId } },
-      create: { roomId: params.roomId, userId: params.userId, roleTag: params.roleTag },
-      update: { roleTag: params.roleTag },
+      create: {
+        roomId: params.roomId,
+        userId: params.userId,
+        roleTag: params.roleTag,
+        imvuDisplayName: params.imvuDisplayName ?? null,
+      },
+      update: {
+        roleTag: params.roleTag,
+        ...(params.imvuDisplayName !== undefined ? { imvuDisplayName: params.imvuDisplayName } : {}),
+      },
       include: includeUser,
     });
     return {
@@ -28,6 +37,7 @@ export class PrismaRoomMemberRepository implements IRoomMemberRepository {
       username: member.user.username,
       avatarUrl: member.user.avatarUrl,
       roleTag: member.roleTag,
+      imvuDisplayName: member.imvuDisplayName,
       joinedAt: member.joinedAt,
     };
   }
@@ -43,6 +53,7 @@ export class PrismaRoomMemberRepository implements IRoomMemberRepository {
       username: member.user.username,
       avatarUrl: member.user.avatarUrl,
       roleTag: member.roleTag,
+      imvuDisplayName: member.imvuDisplayName,
       joinedAt: member.joinedAt,
     }));
   }

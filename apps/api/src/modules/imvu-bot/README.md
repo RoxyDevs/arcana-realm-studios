@@ -1,13 +1,32 @@
-# Arcana IMVU Room Bot — research + design (not shippable yet)
+# Arcana IMVU Room Bot
 
-Status: **domain interface only, no infrastructure adapter.** This module
-intentionally has no controller, no NestJS wiring in `app.module.ts`, and no
-implementation of `IImvuRoomChatAdapter`. Two things block going further,
-and both need a human decision, not more code:
+Status: **implemented, wired into `app.module.ts`, not yet tested against a
+real IMVU bot account.** The go/no-go on `imvu.js` below was decided (go —
+the room owner explicitly asked to proceed despite the risk, having already
+seen the `imvu.js.org`-based `BorealVU` bot working live in one of their
+rooms). What's built:
 
-1. A real IMVU bot account's credentials, to test any adapter end-to-end.
-2. A go/no-go decision on the `imvu.js` finding below — this isn't a small
-   detail, it changes what "using imvu.js" actually means.
+- `infrastructure/imvu-js-room-chat.adapter.ts` implements
+  `IImvuRoomChatAdapter` against the real `imvu.js` package (source read
+  directly — `lib/imvu.js`, `lib/ws.js` — not just its README).
+- The room owner's `imvu.js.org` token is encrypted at rest
+  (`ImvuBotCredential`, AES-256-GCM via `AesSecretBox`) and set through
+  `PUT /rooms/:roomId/bot/credential`.
+- `POST /rooms/:roomId/bot/start` / `/stop` and `GET /rooms/:roomId/bot`
+  (`ImvuBotController`) — owner-only, gated on an active `BotLicense` via
+  the existing `ROOM_LICENSE_CHECKER` port.
+- `ChatCommandRouter` handles `!play`, `!skip`, `!queue`, `!nowplaying`
+  against the real `MusicService` queue — the deterministic layer described
+  below, now real code instead of a plan.
+- A dashboard panel (`apps/web/components/imvu-bot-panel.tsx`) to paste the
+  token and start/stop the bot.
+
+**Still blocking real end-to-end verification:** nobody has run this
+against an actual `imvu.js.org` bot account yet. Register one there, save
+its token via the dashboard panel, buy/grant this room a `BotLicense`, hit
+"Arrancar bot", and watch for the `'ready'` event / a reply to `!nowplaying`
+in the room's chat. Until that happens, treat the adapter as "compiles and
+matches the library's real source" — not "confirmed working."
 
 ## What IMVU officially offers
 
@@ -73,46 +92,39 @@ larger — risk than the TODO note implied before anyone read the source.
 
 ## Design: `IImvuRoomChatAdapter` (this module's `domain/`)
 
-Regardless of which transport gets chosen (or whether one gets chosen at
-all), the business logic on top of it should never know the difference.
-`domain/imvu-room-chat-adapter.interface.ts` defines that boundary:
-`connect`/`disconnect`/`sendMessage`/`onMessage`/`onUserJoin`/`onUserLeave`,
-with `botCredential` left intentionally opaque (a session token today,
-something else tomorrow, adapter's problem either way).
+Regardless of which transport gets chosen, the business logic on top of it
+should never know the difference. `domain/imvu-room-chat-adapter.interface.ts`
+defines that boundary: `connect`/`disconnect`/`sendMessage`/`onMessage`/
+`onUserJoin`/`onUserLeave`, with `botCredential` left intentionally opaque.
+`infrastructure/imvu-js-room-chat.adapter.ts` is the one concrete
+implementation, against `imvu.js`.
 
-The intended shape for what sits *on top* of this port, once there's an
-adapter to wire in:
+What sits *on top* of this port, in `application/`:
 
-1. **Deterministic commands first.** `!play`, `!skip`, and friends already
-   exist as real business logic (Arcana Music's queue). A chat message
-   handler pattern-matches against known command prefixes before anything
-   else runs — per the root `CLAUDE.md`'s AI Philosophy ("prefer
-   deterministic systems assisted by AI instead of replacing business
-   logic"), the LLM layer is a fallback for messages that aren't a known
-   command, not a replacement for command parsing.
-2. **AI response layer, separate service.** Only messages that don't match
-   a deterministic command reach it. Keeping it a distinct service (not
-   folded into command dispatch) means it can be toggled off per room
-   without touching `!play`/`!skip` at all.
-3. **Room-role awareness — currently blocked by a schema gap.** The ask was
-   for responses "conscious of room roles" using `RoomMember.roleTag`
-   (`packages/database/prisma/schema.prisma`). Checked that model: it's
-   keyed by `roomId` + Arcana `User.id`, with **no IMVU identity field at
-   all**. It's populated by an Arcana-account holder self-tagging *inside
-   the dashboard* — nothing today links that row to the display name/ID an
-   IMVU chat message's sender actually shows up as. Before role-aware
-   responses are possible, `RoomMember` needs something like an
-   `imvuDisplayName` field (self-reported, same trust level as `roleTag`
-   itself — this isn't a verified identity link, just a matching key) so
-   an incoming `ImvuRoomChatMessage.senderDisplayName` can be looked up
-   against it. Not built yet — flagging it here since it blocks step 3
-   specifically, independent of the `imvu.js` question above.
+1. **Deterministic commands first — built.** `ChatCommandRouter` handles
+   `!play`, `!skip`, `!queue`, `!nowplaying` against the real `MusicService`
+   queue, per the root `CLAUDE.md`'s AI Philosophy ("prefer deterministic
+   systems assisted by AI instead of replacing business logic"). A message
+   that isn't a recognized command returns `null` and is otherwise ignored —
+   there is no AI response layer yet (see below).
+2. **AI response layer — not built.** Only messages that don't match a
+   deterministic command should reach it, as a distinct service (not folded
+   into `ChatCommandRouter`) so it can be toggled off per room without
+   touching `!play`/`!skip`. This is the "Host conversacional con IA" task —
+   real conversational responses, aware of room context (seats, roles,
+   now-playing, queue). Needs an LLM provider decision (none configured in
+   this codebase yet) before it can start.
+3. **Room-role awareness — schema gap closed, not yet consumed.**
+   `RoomMember.imvuDisplayName` now exists (self-reported, same trust level
+   as `roleTag` — not a verified identity link) and is settable via
+   `PUT /rooms/:roomId/members/me`. Nothing reads it yet — that lookup
+   (matching an incoming `ImvuRoomChatMessage.senderDisplayName` back to a
+   roster row) belongs inside whatever implements step 2, not in the
+   deterministic command router, which has no need for role context today.
 
 ## What's needed before this goes further
 
-- A decision on the `imvu.js`/`imvu.js.org` trust question above — worth
-  treating as a real go/no-go, not a formality (see AskUserQuestion in the
-  session that produced this doc).
-- A real IMVU bot account to test whatever gets decided against.
-- The `RoomMember.imvuDisplayName` schema addition, if role-aware responses
-  are still wanted.
+- A real `imvu.js.org` bot account + token, to actually exercise `connect()`
+  end-to-end (register there, save the token via the dashboard's "Bot de
+  sala" panel, buy/grant a `BotLicense`, hit "Arrancar bot").
+- A decision on an LLM provider, before step 2 (AI response layer) starts.

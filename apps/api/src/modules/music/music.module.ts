@@ -32,5 +32,6 @@ import { JamendoTrackProvider } from "./infrastructure/jamendo-track.provider";
     { provide: TRACK_REPOSITORY, useClass: PrismaTrackRepository },
     { provide: QUEUE_REPOSITORY, useClass: PrismaQueueRepository },
   ],
+  exports: [MusicService],
 })
 export class MusicModule {}
