@@ -1,6 +1,8 @@
 import Link from "next/link";
+import Image from "next/image";
 import { GlitchText } from "@/components/glitch-text";
 import { SpotlightContainer } from "@/components/spotlight-container";
+import { HeroFlyerCarousel } from "@/components/hero-flyer-carousel";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -20,6 +22,8 @@ export default function HomePage() {
       >
         近未来
       </span>
+
+      <HeroFlyerCarousel />
 
       <SpotlightContainer>
         <div className="space-y-5 p-4">
@@ -45,6 +49,17 @@ export default function HomePage() {
         >
           Pricing
         </Link>
+      </div>
+
+      <div className="relative w-full overflow-hidden rounded-xl border border-arcana-border">
+        <Image
+          src="/marketing/flyer-banner-wide.png"
+          alt="Arcana Realm Studios — live radio 24/7, AI playlist match, always-connected IMVU bot"
+          width={2172}
+          height={724}
+          sizes="(min-width: 1024px) 64rem, 100vw"
+          className="w-full"
+        />
       </div>
 
       <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">

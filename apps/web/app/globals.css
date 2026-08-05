@@ -114,6 +114,19 @@ body {
   }
 }
 
+/* Slow ambient glow on the landing page's hero flyer — a much gentler,
+   slower cousin of neon-pulse (2.6s) since this sits behind a large image
+   for minutes at a time, not a small CTA button glanced at briefly. */
+@keyframes hero-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 24px rgba(0, 255, 242, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(0, 255, 242, 0.3);
+  }
+}
+
 /* Sparkle ring for the FAQ bot's floating launcher button — a handful of
    twinkling dots orbiting the button, each on its own offset/duration so
    they don't blink in sync. Purely a "come tap me" attention cue, scoped to
@@ -152,6 +165,10 @@ body {
 
   .animate-neon-pulse {
     animation: neon-pulse 2.6s ease-in-out infinite;
+  }
+
+  .animate-hero-breathe {
+    animation: hero-breathe 5s ease-in-out infinite;
   }
 
   .text-holo,
