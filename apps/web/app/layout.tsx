@@ -20,8 +20,20 @@ const rajdhani = Rajdhani({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_WEB_URL ?? "https://arcana-realm-web.vercel.app"),
   title: "Arcana Realm Studios",
   description: "The operating system for IMVU room owners, DJs, creators, and moderators.",
+  openGraph: {
+    title: "Arcana Realm Studios",
+    description: "The operating system for IMVU room owners, DJs, creators, and moderators.",
+    images: [{ url: "/marketing/flyer-square-full.png", width: 1254, height: 1254 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Arcana Realm Studios",
+    description: "The operating system for IMVU room owners, DJs, creators, and moderators.",
+    images: ["/marketing/flyer-square-full.png"],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
