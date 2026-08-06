@@ -122,7 +122,16 @@ What sits *on top* of this port, in `application/`:
    roster row) belongs inside whatever implements step 2, not in the
    deterministic command router, which has no need for role context today.
 
-## What's needed before this goes further
+## Does the bot show up as a visible avatar in the room?
+
+Short answer: **yes, automatically — this isn't something Arcana's code needs to build.** The "bot" is a real IMVU account (whichever one was registered at imvu.js.org and whose token got pasted into the dashboard's bot panel), and connecting it through imvu.js is a real login session for that account, the same as a person opening IMVU normally. Whatever that account's avatar looks like — the outfit, the model — is what shows up in the room, because it's a real avatar occupying a real seat, not a headless/text-only participant.
+
+Two concrete, code-verified consequences of that, read directly from `lib/imvu.js` (not assumed from the README, which doesn't mention either):
+
+- **Appearance isn't controllable from here, and never was.** The library's constructor accepts `walk`/`gameslib`/`outfit` options — they're stored on the instance and then never referenced anywhere else in the source. Dead code. If you want the bot to look a certain way, dress up its IMVU account the normal way, through IMVU itself, before connecting it — same as any avatar. `imvu-js.d.ts` documents this inline now so nobody wires `outfit` up expecting it to do something.
+- **Position IS controllable.** `ImvuJsClient.seat` is a real, plain instance property — set it before calling `login()` and the library calls its own `update_seat()` right after auth completes. `ImvuBotCredential.seat` (new column) + the bot panel's optional seat field wire this through end-to-end now: `PUT /rooms/:roomId/bot/credential { token, seat }`.
+
+None of this has been confirmed against a real room yet, same open item as the rest of this module — but it comes directly from what the library's own code does, not a guess.
 
 - A real `imvu.js.org` bot account + token, to actually exercise `connect()`
   end-to-end (register there, save the token via the dashboard's "Bot de

@@ -11,12 +11,12 @@ export class PrismaImvuBotCredentialRepository implements IImvuBotCredentialRepo
     private readonly secretBox: AesSecretBox,
   ) {}
 
-  async set(roomId: string, plaintextToken: string): Promise<void> {
+  async set(roomId: string, plaintextToken: string, seat?: string | null): Promise<void> {
     const { ciphertext, iv, authTag } = this.secretBox.encrypt(plaintextToken);
     await this.prisma.imvuBotCredential.upsert({
       where: { roomId },
-      create: { roomId, encryptedToken: ciphertext, iv, authTag },
-      update: { encryptedToken: ciphertext, iv, authTag },
+      create: { roomId, encryptedToken: ciphertext, iv, authTag, seat: seat ?? null },
+      update: { encryptedToken: ciphertext, iv, authTag, seat: seat ?? null },
     });
   }
 
@@ -28,6 +28,11 @@ export class PrismaImvuBotCredentialRepository implements IImvuBotCredentialRepo
       iv: record.iv,
       authTag: record.authTag,
     });
+  }
+
+  async getSeat(roomId: string): Promise<string | null> {
+    const record = await this.prisma.imvuBotCredential.findUnique({ where: { roomId } });
+    return record?.seat ?? null;
   }
 
   async exists(roomId: string): Promise<boolean> {

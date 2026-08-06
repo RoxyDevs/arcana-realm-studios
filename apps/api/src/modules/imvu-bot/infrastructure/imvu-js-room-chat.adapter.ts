@@ -36,11 +36,19 @@ export class ImvuJsRoomChatAdapter implements IImvuRoomChatAdapter {
   private readonly logger = new Logger(ImvuJsRoomChatAdapter.name);
   private readonly connections = new Map<string, RoomConnection>();
 
-  async connect(params: { roomId: string; botCredential: string }): Promise<void> {
-    const { roomId, botCredential } = params;
+  async connect(params: { roomId: string; botCredential: string; seat?: string | null }): Promise<void> {
+    const { roomId, botCredential, seat } = params;
     if (this.connections.has(roomId)) return;
 
     const client = new ImvuJsClient({ name: `arcana-bot-${roomId}` });
+    // Confirmed real by reading lib/imvu.js directly: IMVU.login() calls
+    // update_seat() right after auth IF `this.seat` was already set — a
+    // plain instance property, not a constructor option, so it has to be
+    // assigned before login() rather than passed in above. There is no
+    // equivalent property for outfit/appearance (see imvu-js.d.ts).
+    if (seat) {
+      client.seat = seat;
+    }
 
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {

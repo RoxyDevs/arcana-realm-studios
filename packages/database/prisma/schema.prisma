@@ -345,6 +345,14 @@ model ImvuBotCredential {
   encryptedToken String
   iv             String
   authTag        String
+  // Where the bot stands/sits, sent once via imvu.js's update_seat() right
+  // after login — confirmed real (lib/imvu.js's `IMVU.seat` /
+  // `update_seat()`), unlike `outfit`, which the library accepts in its
+  // constructor but never actually uses anywhere (verified by reading the
+  // full source — dead code, not wired to anything). There is no
+  // equivalent for appearance: whatever the bot's underlying IMVU account
+  // is wearing (set the normal way, through IMVU itself) is what shows up.
+  seat           String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

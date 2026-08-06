@@ -47,9 +47,10 @@ export interface IImvuRoomChatAdapter {
    * Establishes the bot's presence in a room. `botCredential` is
    * intentionally opaque here — what it actually is (a session token, an
    * API key, something else) is a decision for the concrete adapter, not
-   * this interface.
+   * this interface. `seat` positions the bot once connected — where
+   * available; see the concrete adapter for whether/how it's honored.
    */
-  connect(params: { roomId: string; botCredential: string }): Promise<void>;
+  connect(params: { roomId: string; botCredential: string; seat?: string | null }): Promise<void>;
   disconnect(roomId: string): Promise<void>;
   isConnected(roomId: string): boolean;
 

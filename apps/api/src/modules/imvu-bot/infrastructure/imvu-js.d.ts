@@ -27,6 +27,18 @@ declare module "imvu.js" {
 
   interface ImvuJsOptions {
     name?: string;
+    /**
+     * CONFIRMED DEAD CODE — read the full source of lib/imvu.js during this
+     * session: `walk`/`gameslib`/`outfit` are all stored on the instance in
+     * the constructor and never referenced anywhere else in the library.
+     * They do not configure appearance, movement, or anything else today.
+     * Kept typed here only so a future read of the library's own
+     * (currently-inaccurate) README doesn't lead someone to wire these up
+     * expecting them to do something. Do not use `outfit` to try to control
+     * the bot's look — there is no such mechanism. See `ImvuJsClient.seat`
+     * for the one instance property that actually does something
+     * (positioning, not appearance).
+     */
     walk?: boolean;
     gameslib?: boolean;
     outfit?: unknown[];
@@ -50,6 +62,15 @@ declare module "imvu.js" {
     removeAllListeners(): void;
     ws: { close?: () => void } | null;
     users: ImvuJsUsersService;
+    /**
+     * A plain, mutable instance property — NOT a constructor option. Set it
+     * BEFORE calling login(); if truthy, login() calls the library's own
+     * update_seat() automatically right after auth completes. Confirmed
+     * real by reading lib/imvu.js's IMVU.login()/update_seat() directly —
+     * this is the one thing here that actually controls where the bot
+     * appears (not what it looks like).
+     */
+    seat: string | null;
   }
 
   export = ImvuJsClient;

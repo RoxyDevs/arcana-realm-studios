@@ -36,9 +36,9 @@ export class BotSessionService {
     private readonly roomBans: RoomBanService,
   ) {}
 
-  async setCredential(roomId: string, userId: string, token: string): Promise<void> {
+  async setCredential(roomId: string, userId: string, token: string, seat: string | null = null): Promise<void> {
     await this.roomAccess.assertOwner(roomId, userId);
-    await this.credentials.set(roomId, token);
+    await this.credentials.set(roomId, token, seat);
   }
 
   async clearCredential(roomId: string, userId: string): Promise<void> {
@@ -79,9 +79,10 @@ export class BotSessionService {
         "No hay token de imvu.js.org configurado para esta sala todavía — configuralo antes de arrancar el bot.",
       );
     }
+    const seat = await this.credentials.getSeat(roomId);
 
     try {
-      await this.adapter.connect({ roomId, botCredential: token });
+      await this.adapter.connect({ roomId, botCredential: token, seat });
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       this.logger.warn(`imvu.js.org rejected the bot connection for room ${roomId}: ${reason}`);

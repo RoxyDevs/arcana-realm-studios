@@ -22,13 +22,13 @@ export class ImvuBotController {
   }
 
   @Put("credential")
-  @ApiOperation({ summary: "Saves the room's imvu.js.org bot token (encrypted at rest)" })
+  @ApiOperation({ summary: "Saves the room's imvu.js.org bot token (encrypted at rest) and optional seat" })
   setCredential(
     @Param("roomId") roomId: string,
     @CurrentUser() user: AuthenticatedUserDto,
     @Body() dto: SetBotCredentialRequestDto,
   ): Promise<void> {
-    return this.botSession.setCredential(roomId, user.id, dto.token);
+    return this.botSession.setCredential(roomId, user.id, dto.token, dto.seat ?? null);
   }
 
   @Delete("credential")
