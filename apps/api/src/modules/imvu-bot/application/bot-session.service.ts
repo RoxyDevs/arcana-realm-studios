@@ -20,6 +20,7 @@ import {
   type IImvuRoomChatAdapter,
 } from "../domain/imvu-room-chat-adapter.interface";
 import { ChatCommandRouter } from "./chat-command.router";
+import { RoomBanService } from "./room-ban.service";
 
 @Injectable()
 export class BotSessionService {
@@ -32,6 +33,7 @@ export class BotSessionService {
     @Inject(IMVU_BOT_CREDENTIAL_REPOSITORY) private readonly credentials: IImvuBotCredentialRepository,
     @Inject(IMVU_ROOM_CHAT_ADAPTER) private readonly adapter: IImvuRoomChatAdapter,
     private readonly commandRouter: ChatCommandRouter,
+    private readonly roomBans: RoomBanService,
   ) {}
 
   async setCredential(roomId: string, userId: string, token: string): Promise<void> {
@@ -96,6 +98,20 @@ export class BotSessionService {
         })
         .catch((error) => {
           this.logger.error(`Failed handling chat message in room ${roomId}: ${error instanceof Error ? error.message : error}`);
+        });
+    });
+
+    // What actually makes !ban stick: imvu.js's kick() only removes someone
+    // from the room *right now* (see RoomBan's schema comment) — every
+    // future join attempt has to be checked and re-kicked independently.
+    this.adapter.onUserJoin(roomId, (event) => {
+      this.roomBans
+        .isBanned(roomId, event.displayName)
+        .then((banned) => {
+          if (banned) return this.adapter.kickUser(roomId, event.imvuId);
+        })
+        .catch((error) => {
+          this.logger.error(`Failed checking ban status for ${event.displayName} in room ${roomId}: ${error instanceof Error ? error.message : error}`);
         });
     });
 

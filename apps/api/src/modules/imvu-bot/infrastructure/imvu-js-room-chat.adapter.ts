@@ -86,6 +86,30 @@ export class ImvuJsRoomChatAdapter implements IImvuRoomChatAdapter {
     connection.client.say(content);
   }
 
+  async kickUser(roomId: string, imvuUserId: string): Promise<void> {
+    const connection = this.connections.get(roomId);
+    if (!connection) return; // not connected — nothing to kick from
+    const user = connection.client.users.getById(imvuUserId);
+    if (!user) {
+      this.logger.warn(`kickUser: no cached user ${imvuUserId} in room ${roomId} (already left?)`);
+      return;
+    }
+    user.kick();
+  }
+
+  async findUserByDisplayName(roomId: string, displayName: string): Promise<{ imvuId: string; displayName: string } | null> {
+    const connection = this.connections.get(roomId);
+    if (!connection) return null;
+    const needle = displayName.trim().toLowerCase();
+    const match = connection.client.users
+      .get()
+      .find((user) => (user.display_name ?? user.username ?? "").toLowerCase() === needle);
+    if (!match) return null;
+    const imvuId = match.id ?? match.legacy_cid;
+    if (!imvuId) return null;
+    return { imvuId, displayName: match.display_name ?? match.username ?? displayName };
+  }
+
   onMessage(roomId: string, handler: (message: ImvuRoomChatMessage) => void): void {
     const connection = this.requireConnection(roomId);
     connection.client.on("message", ({ content, user }) => {
@@ -94,6 +118,7 @@ export class ImvuJsRoomChatAdapter implements IImvuRoomChatAdapter {
         senderDisplayName: user.display_name ?? user.username ?? "Unknown",
         content,
         receivedAt: new Date(),
+        senderCanModerate: Boolean(user.is_host) || Boolean(user.isMod),
       });
     });
   }

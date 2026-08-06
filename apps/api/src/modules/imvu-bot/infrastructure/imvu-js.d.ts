@@ -12,6 +12,12 @@ declare module "imvu.js" {
     legacy_cid: string | null;
     display_name: string | null;
     username: string | null;
+    /** True when IMVU reports this user as the room's host/owner — see lib/imvu.js's User class. */
+    is_host: boolean;
+    /** True when IMVU reports this user as a room moderator (a role assigned inside IMVU itself, not by Arcana). */
+    isMod: boolean;
+    /** Real method on the library's User class — sends a "kick" message over the ws relay. Not documented in the README; confirmed by reading lib/imvu.js directly. */
+    kick(): void;
   }
 
   interface ImvuJsMessageEvent {
@@ -26,6 +32,12 @@ declare module "imvu.js" {
     outfit?: unknown[];
   }
 
+  interface ImvuJsUsersService {
+    getById(id: string): ImvuJsUser | null;
+    /** No-arg call returns every currently-tracked user; matches lib/imvu.js's UsersService.get(). */
+    get(query?: Record<string, unknown>): ImvuJsUser[];
+  }
+
   class ImvuJsClient {
     constructor(options?: ImvuJsOptions);
     login(token: string): Promise<void>;
@@ -37,6 +49,7 @@ declare module "imvu.js" {
     once(event: "ready", handler: () => void): void;
     removeAllListeners(): void;
     ws: { close?: () => void } | null;
+    users: ImvuJsUsersService;
   }
 
   export = ImvuJsClient;

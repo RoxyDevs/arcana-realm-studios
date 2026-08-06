@@ -26,6 +26,15 @@ export interface ImvuRoomChatMessage {
   senderDisplayName: string;
   content: string;
   receivedAt: Date;
+  /**
+   * True only when IMVU itself reports this sender as the room's host or a
+   * moderator (imvu.js's User.is_host / .isMod, populated from IMVU's own
+   * live room data) — deliberately NOT RoomMember.roleTag, which is
+   * self-reported and explicitly not a verified signal (see its schema
+   * comment). This is the one thing here that's actually safe to gate
+   * moderation commands (!ban/!kick/!unban) on.
+   */
+  senderCanModerate: boolean;
 }
 
 export interface ImvuRoomPresenceEvent {
@@ -45,6 +54,16 @@ export interface IImvuRoomChatAdapter {
   isConnected(roomId: string): boolean;
 
   sendMessage(roomId: string, content: string): Promise<void>;
+  /**
+   * Removes a user from the room right now — real-time only, nothing
+   * persistent (see the `RoomBan` model for how a "ban" that actually
+   * sticks is built on top of this). No-ops if the user isn't currently
+   * tracked as present (already left, wrong id, etc.) rather than throwing
+   * — callers can't always know in advance.
+   */
+  kickUser(roomId: string, imvuUserId: string): Promise<void>;
+  /** Case-insensitive lookup against currently-present users only — there's no way to resolve someone who isn't in the room right now. */
+  findUserByDisplayName(roomId: string, displayName: string): Promise<{ imvuId: string; displayName: string } | null>;
 
   onMessage(roomId: string, handler: (message: ImvuRoomChatMessage) => void): void;
   onUserJoin(roomId: string, handler: (event: ImvuRoomPresenceEvent) => void): void;
