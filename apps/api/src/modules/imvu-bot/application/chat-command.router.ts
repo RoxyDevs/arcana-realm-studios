@@ -1,6 +1,7 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { MusicService } from "../../music/application/music.service";
-import type { ImvuRoomChatMessage } from "../domain/imvu-room-chat-adapter.interface";
+import { IMVU_ROOM_CHAT_ADAPTER, type IImvuRoomChatAdapter, type ImvuRoomChatMessage } from "../domain/imvu-room-chat-adapter.interface";
+import { RoomBanService } from "./room-ban.service";
 
 /**
  * Deterministic command layer — per the root CLAUDE.md's AI Philosophy
@@ -16,7 +17,11 @@ import type { ImvuRoomChatMessage } from "../domain/imvu-room-chat-adapter.inter
 export class ChatCommandRouter {
   private readonly logger = new Logger(ChatCommandRouter.name);
 
-  constructor(private readonly music: MusicService) {}
+  constructor(
+    private readonly music: MusicService,
+    @Inject(IMVU_ROOM_CHAT_ADAPTER) private readonly adapter: IImvuRoomChatAdapter,
+    private readonly roomBans: RoomBanService,
+  ) {}
 
   /** Returns the bot's chat reply, or null if the message wasn't a recognized command. */
   async handle(roomId: string, ownerId: string, message: ImvuRoomChatMessage): Promise<string | null> {
@@ -39,6 +44,12 @@ export class ChatCommandRouter {
         case "nowplaying":
         case "sonando":
           return await this.handleNowPlaying(roomId, ownerId);
+        case "ban":
+          return await this.handleBan(roomId, ownerId, message, argument);
+        case "kick":
+          return await this.handleKick(roomId, message, argument);
+        case "unban":
+          return await this.handleUnban(roomId, ownerId, message, argument);
         case "help":
         case "ayuda":
           return this.handleHelp();
@@ -49,6 +60,59 @@ export class ChatCommandRouter {
       this.logger.warn(`Command "${command}" failed for room ${roomId}: ${error instanceof Error ? error.message : error}`);
       return "⚠️ Eso no funcionó. Probá de nuevo en un momento.";
     }
+  }
+
+  /**
+   * !ban/!kick/!unban only run for the room's host or an IMVU-assigned
+   * moderator — senderCanModerate comes from IMVU's own live room data
+   * (is_host/isMod), never from anything self-reported on Arcana's side.
+   * Anyone else gets a rejection message, not silence, so it's obvious the
+   * command was seen and declined rather than looking broken.
+   */
+  private requireModerator(message: ImvuRoomChatMessage): string | null {
+    if (message.senderCanModerate) return null;
+    return "🚫 Solo el dueño de la sala o un moderador puede usar ese comando.";
+  }
+
+  private async handleBan(roomId: string, ownerId: string, message: ImvuRoomChatMessage, argument: string): Promise<string> {
+    const denial = this.requireModerator(message);
+    if (denial) return denial;
+
+    const [targetName, ...reasonParts] = argument.split(/\s+/).filter(Boolean);
+    if (!targetName) return "Usá !ban <nombre> [motivo]";
+    const reason = reasonParts.join(" ").trim() || null;
+
+    const target = await this.adapter.findUserByDisplayName(roomId, targetName);
+    if (!target) return `No encuentro a "${targetName}" en la sala ahora mismo — tiene que estar presente para banearlo por chat.`;
+
+    await this.roomBans.ban(roomId, ownerId, target.displayName, reason);
+    await this.adapter.kickUser(roomId, target.imvuId);
+    return `🔨 ${target.displayName} fue baneado de esta sala${reason ? ` (${reason})` : ""} y no va a poder volver a entrar.`;
+  }
+
+  private async handleKick(roomId: string, message: ImvuRoomChatMessage, argument: string): Promise<string> {
+    const denial = this.requireModerator(message);
+    if (denial) return denial;
+
+    const targetName = argument.trim();
+    if (!targetName) return "Usá !kick <nombre>";
+
+    const target = await this.adapter.findUserByDisplayName(roomId, targetName);
+    if (!target) return `No encuentro a "${targetName}" en la sala ahora mismo.`;
+
+    await this.adapter.kickUser(roomId, target.imvuId);
+    return `👢 ${target.displayName} fue expulsado — puede volver a entrar (usá !ban si no querés eso).`;
+  }
+
+  private async handleUnban(roomId: string, ownerId: string, message: ImvuRoomChatMessage, argument: string): Promise<string> {
+    const denial = this.requireModerator(message);
+    if (denial) return denial;
+
+    const targetName = argument.trim();
+    if (!targetName) return "Usá !unban <nombre>";
+
+    const removed = await this.roomBans.unban(roomId, ownerId, targetName);
+    return removed ? `✅ ${targetName} ya no está baneado de esta sala.` : `${targetName} no estaba en la lista de baneados.`;
   }
 
   private async handlePlay(roomId: string, ownerId: string, query: string): Promise<string> {
@@ -86,6 +150,6 @@ export class ChatCommandRouter {
   }
 
   private handleHelp(): string {
-    return "Comandos: !play <búsqueda>, !skip, !queue, !nowplaying";
+    return "Comandos: !play <búsqueda>, !skip, !queue, !nowplaying — solo dueño/mod: !ban <nombre> [motivo], !kick <nombre>, !unban <nombre>";
   }
 }

@@ -45,6 +45,7 @@ model User {
   grantedGuardianLicenses GuardianLicense[] @relation("GuardianLicenseGrantedBy")
   liveSessions  LiveSession[]
   roomMemberships RoomMember[]
+  issuedRoomBans RoomBan[] @relation("RoomBanIssuedBy")
 
   @@map("users")
 }
@@ -119,6 +120,7 @@ model Room {
   liveSessions      LiveSession[]
   members           RoomMember[]
   imvuBotCredential ImvuBotCredential?
+  bans              RoomBan[]
 
   @@index([ownerId])
   @@map("rooms")
@@ -149,6 +151,37 @@ model RoomMember {
 
   @@unique([roomId, userId])
   @@map("room_members")
+}
+
+// ---------------------------------------------------------------------------
+// Room bans — !ban/!kick/!unban from the room-bot's chat commands (see
+// ChatCommandRouter). `imvu.js`'s User.kick() only removes someone from the
+// room *right now*; IMVU has no persistent-ban primitive exposed through it.
+// This table is what makes a ban actually stick: BotSessionService listens
+// for room-join events and re-kicks anyone on this list the moment they try
+// to come back, on every single join, for as long as the row exists.
+// ---------------------------------------------------------------------------
+
+model RoomBan {
+  id              String   @id @default(cuid())
+  roomId          String
+  // Matching is by IMVU display name, not a stable id — the same trust
+  // level as RoomMember.imvuDisplayName, and for the same reason: nothing
+  // in what's actually available (see imvu-bot/README.md) hands back a
+  // durable identity to key this on instead. A determined target could
+  // evade this by changing their display name; this stops casual
+  // re-entry, not a motivated bad actor.
+  imvuDisplayName String
+  reason          String?
+  bannedById      String
+  createdAt       DateTime @default(now())
+
+  room     Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  bannedBy User @relation("RoomBanIssuedBy", fields: [bannedById], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, imvuDisplayName])
+  @@index([roomId])
+  @@map("room_bans")
 }
 
 // ---------------------------------------------------------------------------

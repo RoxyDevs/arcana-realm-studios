@@ -414,6 +414,19 @@ export interface ImvuBotStatusDto {
   hasCredential: boolean;
 }
 
+export interface RoomBanDto {
+  id: string;
+  imvuDisplayName: string;
+  reason: string | null;
+  createdAt: string;
+}
+
+export const BanRoomMemberSchema = z.object({
+  imvuDisplayName: z.string().min(1).max(60),
+  reason: z.string().max(500).optional(),
+});
+export type BanRoomMemberDto = z.infer<typeof BanRoomMemberSchema>;
+
 // ---------------------------------------------------------------------------
 // Pagination
 // ---------------------------------------------------------------------------

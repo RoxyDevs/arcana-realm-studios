@@ -29,5 +29,9 @@ import { PrismaGuardianLicenseRepository } from "./infrastructure/prisma-guardia
     { provide: REPUTATION_REPOSITORY, useClass: PrismaReputationRepository },
     { provide: GUARDIAN_LICENSE_REPOSITORY, useClass: PrismaGuardianLicenseRepository },
   ],
+  // !ban (imvu-bot) files a best-effort Guardian report on every ban — see
+  // RoomBanService. Guardian doesn't need to know imvu-bot exists; this is
+  // a one-directional dependency the other way.
+  exports: [GuardianReportService],
 })
 export class GuardianModule {}
